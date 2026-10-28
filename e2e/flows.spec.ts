@@ -247,3 +247,30 @@ test('backlog sits in front of the inbox, accepts tasks and can be collapsed', a
   await expand.click()
   await expect(column(page, 'Backlog').locator('.card__title')).toHaveText(['Irgendwann', 'Später'])
 })
+
+test('cards can be colored from the menu and the drawer; backlog tasks are dimmed in Today', async ({ page }) => {
+  await openApp(page, '#/board')
+  await quickCapture(page, 'Bunte Karte')
+  const target = () => card(column(page, 'Inbox'), 'Bunte Karte')
+
+  await target().getByRole('button', { name: /Aktionen für/ }).click()
+  await page.getByRole('menuitemradio', { name: 'Farbe: Grün' }).click()
+  await expect(target()).toHaveClass(/color-green/)
+
+  await target().locator('.card__main').click()
+  const drawer = page.getByRole('dialog', { name: 'Aufgabendetails' })
+  await expect(drawer.getByRole('radio', { name: 'Grün' })).toHaveAttribute('aria-checked', 'true')
+  await drawer.getByRole('radio', { name: 'Lila' }).click()
+  await page.keyboard.press('Escape')
+  await page.reload()
+  await expect(target()).toHaveClass(/color-purple/)
+
+  // Backlog task with a deadline today: shown in Today, greyed out and after the flow tasks.
+  await target().getByRole('button', { name: /Aktionen für/ }).click()
+  await page.getByRole('menuitem', { name: 'Verschieben nach … Backlog' }).click()
+  await card(column(page, 'Backlog'), 'Bunte Karte').locator('.card__main').click()
+  await drawer.getByRole('button', { name: 'Heute', exact: true }).click()
+  await page.keyboard.press('Escape')
+  await page.getByRole('link', { name: /Heute/ }).click()
+  await expect(page.locator('.row', { hasText: 'Bunte Karte' })).toHaveClass(/row--dimmed/)
+})

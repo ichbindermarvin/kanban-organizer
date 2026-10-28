@@ -35,7 +35,7 @@ export const TaskCard = memo(function TaskCard({ task, done, drag, overlay }: Ta
     <article
       ref={drag?.nodeRef as Ref<HTMLElement>}
       style={drag?.style}
-      className={`card${done ? ' card--done' : ''}${drag?.isDragging ? ' card--placeholder' : ''}${overlay ? ' card--overlay' : ''}${selected ? ' card--selected' : ''}`}
+      className={`card${task.color ? ` card--colored color-${task.color}` : ''}${done ? ' card--done' : ''}${drag?.isDragging ? ' card--placeholder' : ''}${overlay ? ' card--overlay' : ''}${selected ? ' card--selected' : ''}`}
       data-task-id={task.id}
       onPointerDown={drag?.onPointerDown}
       onFocus={() => selectTask(task.id)}

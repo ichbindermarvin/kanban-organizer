@@ -9,6 +9,11 @@ export const PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const
 export const prioritySchema = z.enum(PRIORITIES)
 export type Priority = z.infer<typeof prioritySchema>
 
+/** Optional card color chosen by the user. Purely visual; never the only carrier of information. */
+export const CARD_COLORS = ['red', 'orange', 'yellow', 'green', 'teal', 'blue', 'purple', 'pink'] as const
+export const cardColorSchema = z.enum(CARD_COLORS)
+export type CardColor = z.infer<typeof cardColorSchema>
+
 export const COLUMN_ROLES = ['backlog', 'inbox', 'planned', 'doing', 'done'] as const
 export const columnRoleSchema = z.enum(COLUMN_ROLES)
 export type ColumnRole = z.infer<typeof columnRoleSchema>
@@ -67,6 +72,7 @@ export const taskSchema = z.object({
   description: z.string().optional(),
   position: z.number(),
   priority: prioritySchema,
+  color: cardColorSchema.optional(),
   dueDate: isoDateSchema.optional(),
   tags: z.array(z.string()),
   subtasks: z.array(subtaskSchema),

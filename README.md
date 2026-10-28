@@ -5,6 +5,7 @@ Kein Jira-, Asana- oder Trello-Klon: wenige Funktionen, dafür schnelle Kernabl�
 
 - **Aufgaben in Sekunden erfassen**: `N` → Titel → `Enter`
 - **Heute-Ansicht**: Überfälliges, heute Fälliges und laufende Arbeit auf einen Blick
+- **Farbige Karten**: 8 Farben zur freien Markierung, direkt über das Kartenmenü oder im Drawer
 - **Kanban-Board**: Backlog ⇢ Inbox → Geplant → In Arbeit → Erledigt, mit sichtbaren Flow-Pfeilen, Drag-and-drop und Tastaturbedienung
 - **Wiederkehrende Aufgaben**: täglich, wöchentlich, monatlich oder benutzerdefiniert
 - **Lokal und privat**: alle Daten bleiben im Browser (IndexedDB), kein Konto, keine Cloud, kein Tracking
@@ -150,6 +151,8 @@ Wird eine Instanz erledigt (Spalte „Erledigt“, Kreis-Button, `X` oder Status
 ## Weitere Produktentscheidungen
 
 - **Backlog** steht vor der Inbox, optisch abgesetzt (gestrichelt, größerer Abstand, gestrichelter Pfeil). Er ist der Ort für „irgendwann“-Ideen, die den Arbeitsfluss nicht belasten sollen. Er lässt sich einklappen, Karten können auch auf den eingeklappten Backlog gezogen werden. Ohne eigene Wahl startet er bei Fensterbreiten unter 1400 px eingeklappt, danach gilt die gespeicherte Einstellung. Quick Capture (`N`) kann direkt in den Backlog speichern, Standard bleibt die Inbox.
+- **Backlog-Aufgaben in „Heute“:** Hat eine Backlog-Aufgabe eine Deadline, erscheint sie in „Heute“, aber leicht ausgegraut und nach den Aufgaben aus dem Arbeitsfluss.
+- **Kartenfarben** sind rein visuell und frei verwendbar: farbiger Streifen links plus leichte Tönung, die im hellen und dunklen Design funktioniert. Duplikate und neue Instanzen wiederkehrender Aufgaben übernehmen die Farbe.
 - **Flow-Pfeile** zwischen den Spalten zeigen die Richtung des Arbeitsflusses. Sie sind rein dekorativ, für Screenreader ist der Fluss als Gruppenname des Boards hinterlegt („Arbeitsfluss: Backlog → Inbox → …“).
 
 - **Wiedereröffnete Aufgaben** (Kreis-Button bei einer erledigten Aufgabe) gehen zurück nach „Geplant“.
@@ -176,7 +179,7 @@ Cloud-Sync ist bewusst nicht implementiert. Vorbereitet ist Folgendes:
 Die App ist eine statische Website. Optionen:
 
 1. **Lokal:** `npm run build && npm run preview`. Dabei immer denselben Port verwenden, sonst sind die Daten unter der anderen Adresse nicht sichtbar.
-2. **GitHub Pages:** siehe `.github/workflows/pages.yml`. Für private Repositories ist dafür ein kostenpflichtiger GitHub-Plan nötig.
+2. **GitHub Pages** (eingerichtet): Jeder Push auf `main` wird nach den Unit-Tests automatisch veröffentlicht, siehe `.github/workflows/pages.yml`. Einmalig nötig: Settings → Pages → Source „GitHub Actions“. Adresse: https://ichbindermarvin.github.io/kanban-organizer/
 3. **Netlify, Cloudflare Pages oder Vercel:** funktionieren auch mit privaten Repositories im Gratis-Tarif (Build: `npm run build`, Ausgabe: `dist`).
 
 Gehostet werden nur die Programmdateien. Die Aufgaben bleiben im Browser.

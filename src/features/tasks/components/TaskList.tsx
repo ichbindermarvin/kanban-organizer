@@ -9,9 +9,11 @@ interface TaskRowProps {
   task: Task
   showColumn?: boolean
   extra?: React.ReactNode
+  /** Shows backlog tasks slightly greyed out (used by the Today view). */
+  dimBacklog?: boolean
 }
 
-export function TaskRow({ task, showColumn = true, extra }: TaskRowProps) {
+export function TaskRow({ task, showColumn = true, extra, dimBacklog }: TaskRowProps) {
   const t = useT()
   const locale = useAppStore((s) => s.settings.locale)
   const column = useAppStore((s) => s.columns.find((c) => c.id === task.columnId))
@@ -24,7 +26,8 @@ export function TaskRow({ task, showColumn = true, extra }: TaskRowProps) {
     showColumn && column ? <span className={`badge badge--column badge--col-${column.role}`}>{columnTitle(column, locale)}</span> : null
 
   return (
-    <li className={`row${done ? ' row--done' : ''}${selected ? ' row--selected' : ''}`} data-task-id={task.id} onFocus={() => selectTask(task.id)}>
+    <li
+      className={`row${task.color ? ` row--colored color-${task.color}` : ''}${done ? ' row--done' : ''}${dimBacklog && column?.role === 'backlog' ? ' row--dimmed' : ''}${selected ? ' row--selected' : ''}`} data-task-id={task.id} onFocus={() => selectTask(task.id)}>
       <CompleteButton task={task} done={done} />
       <button type="button" className="row__main" onClick={() => openDrawer(task.id)}>
         <span className="row__title">{title}</span>
@@ -44,11 +47,11 @@ export function TaskRow({ task, showColumn = true, extra }: TaskRowProps) {
   )
 }
 
-export function TaskList({ tasks, label, showColumn }: { tasks: Task[]; label?: string; showColumn?: boolean }) {
+export function TaskList({ tasks, label, showColumn, dimBacklog }: { tasks: Task[]; label?: string; showColumn?: boolean; dimBacklog?: boolean }) {
   return (
     <ul className="task-list" aria-label={label}>
       {tasks.map((task) => (
-        <TaskRow key={task.id} task={task} showColumn={showColumn} />
+        <TaskRow key={task.id} task={task} showColumn={showColumn} dimBacklog={dimBacklog} />
       ))}
     </ul>
   )

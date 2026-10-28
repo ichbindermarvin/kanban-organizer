@@ -18,9 +18,11 @@ export function selectToday(tasks: Task[], columns: Column[], today: string): To
   const dueToday = open.filter((t) => t.dueDate === today)
   const seen = new Set([...overdue, ...dueToday].map((t) => t.id))
   const inProgress = open.filter((t) => columnsById.get(t.columnId)?.role === 'doing' && !seen.has(t.id))
+  // Backlog tasks still show up (they have a deadline), but after the tasks of the active flow.
+  const backlogLast = (a: Task, b: Task) => Number(columnsById.get(a.columnId)?.role === 'backlog') - Number(columnsById.get(b.columnId)?.role === 'backlog')
   return {
-    overdue: overdue.sort((a, b) => byDueDate(a, b) || byPriority(a, b)),
-    dueToday: dueToday.sort((a, b) => byPriority(a, b) || byPosition(a, b)),
+    overdue: overdue.sort((a, b) => backlogLast(a, b) || byDueDate(a, b) || byPriority(a, b)),
+    dueToday: dueToday.sort((a, b) => backlogLast(a, b) || byPriority(a, b) || byPosition(a, b)),
     inProgress: inProgress.sort(byPosition),
   }
 }

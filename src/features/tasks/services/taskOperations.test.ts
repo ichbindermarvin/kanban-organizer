@@ -27,6 +27,7 @@ describe('buildNextRecurrence', () => {
     const task = makeTask(board.done, {
       title: 'Wochenplanung',
       description: 'Ziele',
+      color: 'teal',
       priority: 'high',
       tags: ['Organisation'],
       dueDate: '2026-08-10',
@@ -44,6 +45,7 @@ describe('buildNextRecurrence', () => {
       title: 'Wochenplanung',
       description: 'Ziele',
       priority: 'high',
+      color: 'teal',
       tags: ['Organisation'],
       dueDate: '2026-08-17',
       columnId: planned.id,
@@ -73,10 +75,10 @@ describe('buildNextRecurrence', () => {
 describe('duplicateTask', () => {
   it('copies an active task directly below the original with open subtasks', () => {
     const { columns, planned } = makeBoard()
-    const a = makeTask(planned, { position: 0, dueDate: '2026-08-20', tags: ['X'], subtasks: [{ id: 's', title: 'A', completed: true, position: 0 }] })
+    const a = makeTask(planned, { position: 0, dueDate: '2026-08-20', tags: ['X'], color: 'pink', subtasks: [{ id: 's', title: 'A', completed: true, position: 0 }] })
     const b = makeTask(planned, { position: 1 })
     const { copy, shifted } = duplicateTask(a, columns, [a, b], NOW, '(Kopie)')
-    expect(copy).toMatchObject({ title: `${a.title} (Kopie)`, columnId: planned.id, position: 1, dueDate: '2026-08-20', tags: ['X'] })
+    expect(copy).toMatchObject({ title: `${a.title} (Kopie)`, columnId: planned.id, position: 1, dueDate: '2026-08-20', tags: ['X'], color: 'pink' })
     expect(copy.subtasks[0]!.completed).toBe(false)
     expect(shifted).toEqual([expect.objectContaining({ id: b.id, position: 2 })])
   })

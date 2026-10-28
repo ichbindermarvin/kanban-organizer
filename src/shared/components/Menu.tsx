@@ -5,6 +5,7 @@ export type MenuEntry =
   | { type: 'item'; label: string; ariaLabel?: string; onSelect: () => void; icon?: ReactNode; danger?: boolean; disabled?: boolean }
   | { type: 'separator' }
   | { type: 'label'; label: string }
+  | { type: 'swatches'; label: string; options: { value: string; label: string; className: string; checked: boolean }[]; onSelect: (value: string) => void }
 
 interface MenuProps {
   label: string
@@ -57,15 +58,17 @@ export function Menu({ label, entries, trigger, triggerClassName = 'icon-btn' }:
   }, [open, close])
 
   const onMenuKeyDown = (event: React.KeyboardEvent) => {
-    const items = [...(menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]:not([disabled])') ?? [])]
+    const items = [...(menuRef.current?.querySelectorAll<HTMLElement>('[role^="menuitem"]:not([disabled])') ?? [])]
     const index = items.indexOf(document.activeElement as HTMLElement)
     const focus = (i: number) => items[(i + items.length) % items.length]?.focus()
     switch (event.key) {
       case 'ArrowDown':
+      case 'ArrowRight':
         event.preventDefault()
         focus(index + 1)
         break
       case 'ArrowUp':
+      case 'ArrowLeft':
         event.preventDefault()
         focus(index - 1)
         break
@@ -125,6 +128,27 @@ export function Menu({ label, entries, trigger, triggerClassName = 'icon-btn' }:
           >
             {entries.map((entry, i) => {
               if (entry.type === 'separator') return <div key={i} role="separator" className="menu__separator" />
+              if (entry.type === 'swatches')
+                return (
+                  <div key={i} role="group" aria-label={entry.label} className="menu__swatches">
+                    {entry.options.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={option.checked}
+                        aria-label={option.label}
+                        title={option.label}
+                        tabIndex={-1}
+                        className={`swatch swatch--small ${option.className}`}
+                        onClick={() => {
+                          close()
+                          entry.onSelect(option.value)
+                        }}
+                      />
+                    ))}
+                  </div>
+                )
               if (entry.type === 'label')
                 return (
                   <div key={i} className="menu__label" aria-hidden="true">

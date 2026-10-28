@@ -1,4 +1,4 @@
-import type { Task } from '@/features/tasks/models/schemas'
+import { CARD_COLORS, type CardColor, type Task } from '@/features/tasks/models/schemas'
 import { columnTitle, useAppStore } from '@/state/appStore'
 import { Menu, type MenuEntry } from '@/shared/components/Menu'
 import { Icon } from '@/shared/components/Icon'
@@ -25,6 +25,17 @@ export function TaskActionsMenu({ task }: { task: Task }) {
       const name = columnTitle(column, locale)
       entries.push({ type: 'item', label: name, ariaLabel: `${t('task.moveTo')} ${name}`, onSelect: () => store().moveToColumn(task.id, column.id) })
     }
+    entries.push({ type: 'separator' })
+    entries.push({ type: 'label', label: t('color.label') })
+    entries.push({
+      type: 'swatches',
+      label: t('color.label'),
+      options: [
+        { value: 'none', label: t('color.none'), className: 'swatch--none', checked: !task.color },
+        ...CARD_COLORS.map((color) => ({ value: color, label: t('color.set', { color: t(`color.${color}`) }), className: `color-${color}`, checked: task.color === color })),
+      ],
+      onSelect: (value) => store().updateTask(task.id, { color: value === 'none' ? undefined : (value as CardColor) }),
+    })
     entries.push({ type: 'separator' })
     entries.push({
       type: 'item',

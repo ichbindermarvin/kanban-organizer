@@ -6,7 +6,7 @@ export const NOW = '2026-08-19T10:00:00.000Z'
 export function makeBoard() {
   const { board, columns } = createDefaultBoard(NOW)
   const byRole = (role: Column['role']) => columns.find((c) => c.role === role)!
-  return { board, columns, inbox: byRole('inbox'), planned: byRole('planned'), doing: byRole('doing'), done: byRole('done') }
+  return { board, columns, backlog: byRole('backlog'), inbox: byRole('inbox'), planned: byRole('planned'), doing: byRole('doing'), done: byRole('done') }
 }
 
 let counter = 0

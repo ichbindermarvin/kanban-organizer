@@ -13,6 +13,7 @@ import { RecurrenceEditor } from '@/features/recurrence/components/RecurrenceEdi
 import { TagInput } from './TagInput'
 import { SubtaskList } from './SubtaskList'
 import { DueBadge } from './TaskMeta'
+import { ColorPicker } from './ColorPicker'
 
 export function TaskDrawerHost() {
   const taskId = useAppStore((s) => s.drawerTaskId)
@@ -29,7 +30,7 @@ function TaskDrawer({ task }: { task: Task }) {
   const { updateTask, moveToColumn, closeDrawer, archiveTask, restoreTask, deleteTask, duplicateTask, openDrawer } = useAppStore.getState()
   const ref = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLTextAreaElement>(null)
-  const ids = { heading: useId(), tags: useId(), subtasks: useId(), recurrence: useId(), status: useId(), due: useId(), desc: useId() }
+  const ids = { heading: useId(), tags: useId(), subtasks: useId(), recurrence: useId(), color: useId(), status: useId(), due: useId(), desc: useId() }
 
   const [title, setTitle] = useState(task.title)
   const [description, setDescription] = useState(task.description ?? '')
@@ -50,7 +51,7 @@ function TaskDrawer({ task }: { task: Task }) {
 
   return createPortal(
     <div className="drawer-backdrop" onMouseDown={(e) => e.target === e.currentTarget && closeDrawer()}>
-      <div ref={ref} className="drawer" role="dialog" aria-modal="true" aria-labelledby={ids.heading}>
+      <div ref={ref} className={`drawer${task.color ? ` drawer--colored color-${task.color}` : ''}`} role="dialog" aria-modal="true" aria-labelledby={ids.heading}>
         <header className="drawer__header">
           <h2 id={ids.heading} className="visually-hidden">
             {t('drawer.label')}
@@ -131,6 +132,13 @@ function TaskDrawer({ task }: { task: Task }) {
                     </button>
                   ))}
                 </div>
+              </dd>
+            </div>
+
+            <div className="field">
+              <dt id={ids.color}>{t('color.label')}</dt>
+              <dd>
+                <ColorPicker value={task.color} labelledBy={ids.color} onChange={(color) => updateTask(task.id, { color })} />
               </dd>
             </div>
 

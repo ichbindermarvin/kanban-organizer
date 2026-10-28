@@ -23,6 +23,13 @@ describe('selectToday', () => {
     expect(new Set(all).size).toBe(all.length)
   })
 
+  it('lists backlog tasks after tasks of the active flow', () => {
+    const { columns, planned, backlog } = makeBoard()
+    const fromBacklog = makeTask(backlog, { dueDate: TODAY, priority: 'urgent' })
+    const fromFlow = makeTask(planned, { dueDate: TODAY, priority: 'low' })
+    expect(selectToday([fromBacklog, fromFlow], columns, TODAY).dueToday.map((t) => t.id)).toEqual([fromFlow.id, fromBacklog.id])
+  })
+
   it('sorts tasks due today by priority', () => {
     const { columns, planned } = makeBoard()
     const low = makeTask(planned, { dueDate: TODAY, priority: 'low' })

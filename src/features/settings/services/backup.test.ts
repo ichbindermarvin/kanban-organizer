@@ -5,6 +5,7 @@ function sample() {
   const { board, columns, planned, done } = makeBoard()
   const recurring = makeTask(planned, {
     dueDate: '2026-08-24',
+    color: 'blue',
     recurrence: { frequency: 'weekly', interval: 1, daysOfWeek: [1] },
     recurrenceSeriesId: 'series-1',
   })
@@ -57,6 +58,12 @@ describe('backup import', () => {
     const file = buildBackup(sample(), NOW)
     const broken = { ...file, tasks: [{ ...file.tasks[0]!, columnId: 'missing' }] }
     expect(parseBackup(JSON.stringify(broken))).toMatchObject({ ok: false, code: 'references' })
+  })
+
+  it('rejects unknown card colors', () => {
+    const file = buildBackup(sample(), NOW)
+    const broken = { ...file, tasks: [{ ...file.tasks[0]!, color: 'gold' }] }
+    expect(parseBackup(JSON.stringify(broken))).toMatchObject({ ok: false, code: 'structure' })
   })
 
   it('rejects invalid recurrence rules', () => {

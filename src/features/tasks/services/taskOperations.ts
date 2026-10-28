@@ -73,6 +73,7 @@ export function buildNextRecurrence(task: Task, columns: Column[], tasks: Task[]
     ...base,
     ...(task.description ? { description: task.description } : {}),
     priority: task.priority,
+    ...(task.color ? { color: task.color } : {}),
     dueDate: nextDue,
     tags: [...task.tags],
     subtasks: task.subtasks.map((s) => ({ ...s, id: newId(), completed: false })),
@@ -85,7 +86,7 @@ export function buildNextRecurrence(task: Task, columns: Column[], tasks: Task[]
  * Duplicates a task so it can be reused.
  * - Active tasks are copied right below the original in the same column, deadline included.
  * - Completed or archived tasks are copied into the Inbox without deadline (reuse as a template).
- * Subtasks are reset to open. A recurring copy starts its own new series.
+ * Subtasks are reset to open, the color is kept. A recurring copy starts its own new series.
  */
 export function duplicateTask(task: Task, columns: Column[], tasks: Task[], now: string, copySuffix: string): { copy: Task; shifted: Task[] } {
   const columnsById = indexColumns(columns)
@@ -103,6 +104,7 @@ export function duplicateTask(task: Task, columns: Column[], tasks: Task[], now:
     ...(task.description ? { description: task.description } : {}),
     position: 0,
     priority: task.priority,
+    ...(task.color ? { color: task.color } : {}),
     ...(keepDue ? { dueDate: task.dueDate } : {}),
     tags: [...task.tags],
     subtasks: task.subtasks.map((s) => ({ ...s, id: newId(), completed: false })),

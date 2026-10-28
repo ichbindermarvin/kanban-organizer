@@ -58,7 +58,7 @@ export function TodayView() {
           <h2 id="today-overdue" className="list-section__title">
             {t('today.overdue')} <span className="list-section__count">{sections.overdue.length}</span>
           </h2>
-          <TaskList tasks={sections.overdue} />
+          <TaskList tasks={sections.overdue} dimBacklog />
         </section>
       )}
       {sections.dueToday.length > 0 && (
@@ -66,7 +66,7 @@ export function TodayView() {
           <h2 id="today-due" className="list-section__title">
             {t('today.dueToday')} <span className="list-section__count">{sections.dueToday.length}</span>
           </h2>
-          <TaskList tasks={sections.dueToday} />
+          <TaskList tasks={sections.dueToday} dimBacklog />
         </section>
       )}
       {sections.inProgress.length > 0 && (
