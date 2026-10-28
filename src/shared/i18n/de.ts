@@ -15,6 +15,7 @@ export const de = {
   'nav.backupHint': 'Letztes Backup vor {days} Tagen',
   'nav.backupNever': 'Noch kein Backup erstellt',
 
+  'column.backlog': 'Backlog',
   'column.inbox': 'Inbox',
   'column.planned': 'Geplant',
   'column.doing': 'In Arbeit',
@@ -29,6 +30,9 @@ export const de = {
   'column.archiveDone': 'Erledigte archivieren',
   'column.archiveOld': 'Älter als 30 Tage archivieren',
   'column.menu': 'Spaltenaktionen',
+  'column.collapse': '{column} einklappen',
+  'column.expand': '{column} ausklappen',
+  'board.flow': 'Arbeitsfluss: {flow}',
 
   'priority.low': 'Niedrig',
   'priority.medium': 'Mittel',

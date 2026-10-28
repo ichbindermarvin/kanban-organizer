@@ -14,11 +14,14 @@ interface BoardColumnProps {
   tasks: Task[]
   totalCount: number
   dragDisabled: boolean
+  /** Only the backlog can be collapsed to give the active flow more room. */
+  collapsed?: boolean
+  onToggleCollapse?: () => void
 }
 
 export const COLUMN_PREFIX = 'column:'
 
-export const BoardColumn = memo(function BoardColumn({ column, tasks, totalCount, dragDisabled }: BoardColumnProps) {
+export const BoardColumn = memo(function BoardColumn({ column, tasks, totalCount, dragDisabled, collapsed, onToggleCollapse }: BoardColumnProps) {
   const t = useT()
   const locale = useAppStore((s) => s.settings.locale)
   const archiveDone = useAppStore((s) => s.archiveDone)
@@ -28,6 +31,32 @@ export const BoardColumn = memo(function BoardColumn({ column, tasks, totalCount
   const limit = column.wipLimit
   const wipState = limit ? (totalCount > limit ? 'over' : totalCount === limit ? 'full' : 'ok') : undefined
   const done = column.role === 'done'
+
+  const toggle = onToggleCollapse && (
+    <button
+      type="button"
+      className="icon-btn icon-btn--sm column__toggle"
+      aria-expanded={!collapsed}
+      aria-label={collapsed ? t('column.expand', { column: name }) : t('column.collapse', { column: name })}
+      onClick={onToggleCollapse}
+    >
+      <Icon name={collapsed ? 'chevronRight' : 'chevronLeft'} size={14} />
+    </button>
+  )
+
+  if (collapsed) {
+    return (
+      <section ref={setNodeRef} className={`column column--${column.role} column--collapsed${isOver ? ' column--over' : ''}`} aria-labelledby={headingId} data-column={column.role}>
+        {toggle}
+        <h2 id={headingId} className="column__title column__title--vertical">
+          {name}
+        </h2>
+        <span className="column__count" aria-label={t('column.count', { count: totalCount })}>
+          {totalCount}
+        </span>
+      </section>
+    )
+  }
 
   return (
     <section className={`column column--${column.role}${isOver ? ' column--over' : ''}`} aria-labelledby={headingId} data-column={column.role}>
@@ -57,6 +86,7 @@ export const BoardColumn = memo(function BoardColumn({ column, tasks, totalCount
             ]}
           />
         )}
+        {toggle}
       </header>
       <SortableContext id={column.id} items={tasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
         <div ref={setNodeRef} className="column__list" role="list" aria-labelledby={headingId}>

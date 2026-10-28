@@ -53,10 +53,15 @@ test('Flow 2c – move without a mouse: keyboard drag and "Verschieben nach"', a
   const inbox = column(page, 'Inbox')
 
   // Keyboard sensor: pick up with space, move right, drop with space.
+  // Waiting for the screen reader announcements also verifies them.
+  const live = page.locator('[id^="DndLiveRegion"]')
   await card(inbox, 'Tastatur').getByRole('button', { name: 'Verschieben nach … Tastatur' }).focus()
   await page.keyboard.press('Space')
+  await expect(live).toHaveText(/Aufgabe Tastatur (aufgenommen\.|ist über Inbox\.)/)
   await page.keyboard.press('ArrowRight')
+  await expect(live).toHaveText('Aufgabe Tastatur ist über Geplant.')
   await page.keyboard.press('Space')
+  await expect(live).toHaveText('Aufgabe Tastatur abgelegt in Geplant.')
   await expect(card(column(page, 'Geplant'), 'Tastatur')).toBeVisible()
 
   // Menu alternative.
@@ -183,11 +188,11 @@ test('WIP limit asks before exceeding and allows moving anyway', async ({ page }
   for (const title of ['W1', 'W2', 'W3', 'W4']) await quickCapture(page, title)
   for (const title of ['W1', 'W2', 'W3']) {
     await card(column(page, 'Inbox'), title).getByRole('button', { name: /Aktionen für/ }).click()
-    await page.getByRole('menuitem', { name: 'Verschieben nach … In Arbeit' }).first().click()
+    await page.getByRole('menuitem', { name: 'Verschieben nach … In Arbeit' }).click()
   }
   await expect(column(page, 'In Arbeit')).toContainText('3 / 3')
   await card(column(page, 'Inbox'), 'W4').getByRole('button', { name: /Aktionen für/ }).click()
-  await page.getByRole('menuitem', { name: 'Verschieben nach … In Arbeit' }).first().click()
+  await page.getByRole('menuitem', { name: 'Verschieben nach … In Arbeit' }).click()
   const dialog = page.getByRole('alertdialog', { name: 'WIP-Limit erreicht' })
   await expect(dialog).toContainText('Das WIP-Limit von 3 Aufgaben')
   await dialog.getByRole('button', { name: 'Trotzdem verschieben' }).click()
@@ -218,4 +223,27 @@ test('search, duplicate, archive and restore', async ({ page }) => {
   await page.getByRole('menuitem', { name: 'Wiederherstellen' }).click()
   await goToBoard(page)
   await expect(card(column(page, 'Inbox'), 'Vorlage Rechnung (Kopie)')).toBeVisible()
+})
+
+test('backlog sits in front of the inbox, accepts tasks and can be collapsed', async ({ page }) => {
+  await openApp(page, '#/board')
+  await expect(page.getByRole('group', { name: 'Arbeitsfluss: Backlog → Inbox → Geplant → In Arbeit → Erledigt' })).toBeVisible()
+  await expect(page.locator('section.column h2')).toHaveText(['Backlog', 'Inbox', 'Geplant', 'In Arbeit', 'Erledigt'])
+
+  await quickCapture(page, 'Irgendwann')
+  await dragCardTo(page, card(column(page, 'Inbox'), 'Irgendwann'), column(page, 'Backlog'))
+  await expect(card(column(page, 'Backlog'), 'Irgendwann')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Backlog einklappen' }).click()
+  await expect(card(page, 'Irgendwann')).toHaveCount(0)
+  await page.reload()
+  const expand = page.getByRole('button', { name: 'Backlog ausklappen' })
+  await expect(expand).toHaveAttribute('aria-expanded', 'false')
+
+  // Dropping on the collapsed backlog appends the task.
+  await quickCapture(page, 'Später')
+  await dragCardTo(page, card(column(page, 'Inbox'), 'Später'), column(page, 'Backlog'))
+  await expect(column(page, 'Backlog')).toContainText('2')
+  await expand.click()
+  await expect(column(page, 'Backlog').locator('.card__title')).toHaveText(['Irgendwann', 'Später'])
 })

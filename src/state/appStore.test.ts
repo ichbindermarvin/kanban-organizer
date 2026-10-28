@@ -24,10 +24,10 @@ async function setup() {
 }
 
 describe('app store with IndexedDB', () => {
-  it('creates a default board with four columns and WIP limit 3 for "In Arbeit"', async () => {
+  it('creates a default board with backlog + four flow columns and WIP limit 3 for "In Arbeit"', async () => {
     const { s } = await setup()
     expect(s().status).toBe('ready')
-    expect(s().boardColumns().map((c) => c.role)).toEqual(['inbox', 'planned', 'doing', 'done'])
+    expect(s().boardColumns().map((c) => c.role)).toEqual(['backlog', 'inbox', 'planned', 'doing', 'done'])
     expect(s().boardColumns().find((c) => c.role === 'doing')!.wipLimit).toBe(3)
   })
 
@@ -164,7 +164,16 @@ describe('app store with IndexedDB', () => {
     expect(await s().importSnapshot(broken)).toEqual({ ok: false })
     const stored = await repos.loadAll()
     expect(stored.tasks.map((t) => t.title)).toEqual(['Bleibt erhalten'])
-    expect(stored.columns).toHaveLength(4)
+    expect(stored.columns).toHaveLength(5)
+  })
+
+  it('adds the backlog when importing a backup from before the backlog existed', async () => {
+    const { s, flush } = await setup()
+    await flush()
+    const snapshot = s().exportSnapshot()
+    const old = { ...snapshot, columns: snapshot.columns.filter((c) => c.role !== 'backlog') }
+    expect(await s().importSnapshot(old)).toEqual({ ok: true })
+    expect(s().boardColumns().map((c) => c.role)).toEqual(['backlog', 'inbox', 'planned', 'doing', 'done'])
   })
 
   it('rolls back the UI when a write fails', async () => {

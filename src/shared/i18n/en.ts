@@ -13,10 +13,11 @@ export const en: Record<TranslationKey, string> = {
   'nav.settings': 'Settings',
   'nav.search': 'Search',
   'nav.newTask': 'New task',
-  'nav.shortcuts': 'Keyboard shortcuts',
+  'nav.shortcuts': 'Shortcuts',
   'nav.backupHint': 'Last backup {days} days ago',
   'nav.backupNever': 'No backup yet',
 
+  'column.backlog': 'Backlog',
   'column.inbox': 'Inbox',
   'column.planned': 'Planned',
   'column.doing': 'In progress',
@@ -31,6 +32,9 @@ export const en: Record<TranslationKey, string> = {
   'column.archiveDone': 'Archive completed',
   'column.archiveOld': 'Archive older than 30 days',
   'column.menu': 'Column actions',
+  'column.collapse': 'Collapse {column}',
+  'column.expand': 'Expand {column}',
+  'board.flow': 'Workflow: {flow}',
 
   'priority.low': 'Low',
   'priority.medium': 'Medium',

@@ -574,11 +574,14 @@ p {
 
 /* ───────────── Board ───────────── */
 .board {
+  --column-min-w: 172px;
+  --column-collapsed-w: 44px;
+  --flow-gap: 26px;
+  --flow-gap-detached: 52px;
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: repeat(4, minmax(240px, 1fr));
-  gap: 14px;
+  gap: 0;
   align-items: stretch;
   overflow-x: auto;
   padding-bottom: 4px;
@@ -594,6 +597,59 @@ p {
 }
 .column--over {
   border-color: var(--accent);
+}
+.column--backlog {
+  background: transparent;
+  border: 1px dashed var(--border-strong);
+}
+.column--backlog.column--over {
+  border-color: var(--accent);
+}
+.column--collapsed {
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+}
+.column__title--vertical {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+.column__toggle {
+  flex: none;
+}
+.column__header .column__toggle {
+  margin: -4px -4px -4px auto;
+}
+.column__header .column__menu + .column__toggle {
+  margin-left: 0;
+}
+
+/* Flow connectors between columns */
+.flow-arrow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  color: var(--text-3);
+}
+.flow-arrow__line {
+  position: absolute;
+  left: 3px;
+  right: 9px;
+  top: 50%;
+  border-top: 1.5px solid var(--border-strong);
+}
+.flow-arrow svg {
+  position: absolute;
+  right: 1px;
+  stroke-width: 2.4;
+}
+.flow-arrow--detached .flow-arrow__line {
+  left: 8px;
+  border-top-style: dashed;
 }
 .column__header {
   display: flex;
@@ -666,10 +722,10 @@ p {
 .card {
   position: relative;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: start;
   gap: 8px;
-  padding: 10px 6px 10px 10px;
+  padding: 10px 10px 10px 10px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -710,12 +766,16 @@ p {
 .card__title {
   font-weight: 500;
   line-height: 1.35;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 .card__actions {
+  position: absolute;
+  top: 5px;
+  right: 5px;
   display: flex;
-  flex-direction: column;
-  margin: -4px 0;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--border);
   opacity: 0;
   transition: opacity 120ms;
 }
@@ -866,7 +926,7 @@ p {
 }
 .row__title {
   font-weight: 500;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 .row--done .row__title {
   color: var(--text-3);
@@ -991,7 +1051,11 @@ p {
   color: var(--text);
 }
 .menu__item svg {
+  flex: none;
   color: var(--text-3);
+}
+.menu__item:not(:has(svg)) {
+  padding-left: 32px;
 }
 .menu__item:hover,
 .menu__item:focus-visible {

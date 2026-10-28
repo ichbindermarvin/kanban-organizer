@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { Board, Column, ColumnRole, Settings, Task } from '@/features/tasks/models/schemas'
 import type { DataSnapshot, Repositories } from '@/db/repositories/types'
 import { StorageError, type StorageErrorKind } from '@/db/database'
-import { columnByRole, createDefaultBoard } from '@/features/board/services/defaults'
+import { columnByRole, createDefaultBoard, missingDefaultColumns } from '@/features/board/services/defaults'
 import { moveTask as computeMove, wouldExceedWip } from '@/features/board/services/moveTask'
 import { applyCompletionState, buildNextRecurrence, createTask, duplicateTask } from '@/features/tasks/services/taskOperations'
 import { tasksInColumn } from '@/features/tasks/services/taskQueries'
@@ -171,6 +171,11 @@ export function createAppStore() {
             snapshot.boards = [board]
             snapshot.columns = columns
             snapshot.tasks = tasks
+          }
+          const missing = missingDefaultColumns(snapshot.boards, snapshot.columns, now)
+          if (missing.length) {
+            await repos.columns.saveMany(missing)
+            snapshot.columns = [...snapshot.columns, ...missing]
           }
           if (!snapshot.settings) {
             snapshot.settings = DEFAULT_SETTINGS(now)
@@ -355,7 +360,9 @@ export function createAppStore() {
         const repos = get().repos
         if (!repos) return { ok: false }
         try {
-          await repos.replaceAll(snapshot)
+          // Older backups may lack columns introduced later (e.g. the backlog).
+          const missing = missingDefaultColumns(snapshot.boards, snapshot.columns, nowTimestamp())
+          await repos.replaceAll(missing.length ? { ...snapshot, columns: [...snapshot.columns, ...missing] } : snapshot)
         } catch (error) {
           console.error(error)
           return { ok: false }

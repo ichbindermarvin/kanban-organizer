@@ -12,7 +12,6 @@ export function TaskActionsMenu({ task }: { task: Task }) {
   const store = useAppStore.getState
   const boardColumns = columns.filter((c) => c.boardId === task.boardId).sort((a, b) => a.position - b.position)
   const current = boardColumns.find((c) => c.id === task.columnId)
-  const doing = boardColumns.find((c) => c.role === 'doing')
   const title = task.title || t('task.untitled')
 
   const entries: MenuEntry[] = []
@@ -20,9 +19,6 @@ export function TaskActionsMenu({ task }: { task: Task }) {
     entries.push({ type: 'item', label: t('task.restore'), icon: <Icon name="restore" />, onSelect: () => store().restoreTask(task.id) })
     entries.push({ type: 'item', label: t('task.reuse'), icon: <Icon name="copy" />, onSelect: () => openCopy(task.id) })
   } else {
-    if (doing && current?.role !== 'doing' && current?.role !== 'done') {
-      entries.push({ type: 'item', label: t('column.doing'), ariaLabel: `${t('task.moveTo')} ${t('column.doing')}`, icon: <Icon name="play" />, onSelect: () => store().moveToColumn(task.id, doing.id) })
-    }
     entries.push({ type: 'label', label: t('task.moveTo') })
     for (const column of boardColumns) {
       if (column.id === task.columnId) continue

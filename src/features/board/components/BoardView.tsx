@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { Fragment, useCallback, useMemo, useState } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -25,6 +25,7 @@ import { tasksInColumn } from '@/features/tasks/services/taskQueries'
 import { FilterPopover, ResetFilterButton } from '@/features/filters/components/FilterPopover'
 import { TaskCard } from '@/features/tasks/components/TaskCard'
 import { useT } from '@/shared/hooks/useT'
+import { Icon } from '@/shared/components/Icon'
 import { BoardColumn, COLUMN_PREFIX } from './BoardColumn'
 import { toFullIndex } from '../services/dropIndex'
 
@@ -58,6 +59,9 @@ export function BoardView() {
   const today = useAppStore((s) => s.today)
   const boardId = useAppStore((s) => s.activeBoardId())
   const moveTask = useAppStore((s) => s.moveTask)
+  // Until the user chooses, the backlog starts collapsed on smaller screens to give the flow columns room.
+  const backlogCollapsed = useAppStore((s) => s.settings.backlogCollapsed) ?? window.innerWidth < 1400
+  const updateSettings = useAppStore((s) => s.updateSettings)
 
   const columns = useMemo(() => allColumns.filter((c) => c.boardId === boardId).sort((a, b) => a.position - b.position), [allColumns, boardId])
   const tasksById = useMemo(() => new Map(tasks.map((task) => [task.id, task])), [tasks])
@@ -77,6 +81,7 @@ export function BoardView() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const items = dragItems ?? baseItems
   const dragDisabled = sortMode !== 'manual'
+  const collapsedColumnId = backlogCollapsed ? columns.find((c) => c.role === 'backlog')?.id : undefined
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -101,7 +106,8 @@ export function BoardView() {
     if (!over || !dragItems) return
     const from = findContainer(active.id, dragItems)
     const to = findContainer(over.id, dragItems)
-    if (!from || !to || from === to) return
+    // A collapsed column shows no cards; dropping on it appends (handled in onDragEnd).
+    if (!from || !to || from === to || to === collapsedColumnId) return
     setDragItems((prev) => {
       if (!prev) return prev
       const source = prev[from]!.filter((id) => id !== active.id)
@@ -120,6 +126,10 @@ export function BoardView() {
     setDragItems(null)
     setActiveId(null)
     if (!current || !over) return
+    if (collapsedColumnId && String(over.id) === COLUMN_PREFIX + collapsedColumnId) {
+      moveTask(String(active.id), collapsedColumnId, tasksInColumn(tasks, collapsedColumnId).length)
+      return
+    }
     const columnId = findContainer(active.id, current)
     if (!columnId) return
     let list = current[columnId]!
@@ -152,6 +162,15 @@ export function BoardView() {
   }
 
   const activeTask = activeId ? tasksById.get(activeId) : undefined
+  const flowLabel = columns.map((column) => columnTitle(column, locale)).join(' → ')
+  // Grid tracks: column, arrow, column, … The backlog is set apart by a wider, dashed connector.
+  const template = columns
+    .map((column, index) => {
+      const previous = columns[index - 1]
+      const arrow = previous ? (previous.role === 'backlog' ? 'var(--flow-gap-detached) ' : 'var(--flow-gap) ') : ''
+      return arrow + (column.id === collapsedColumnId ? 'var(--column-collapsed-w)' : 'minmax(var(--column-min-w), 1fr)')
+    })
+    .join(' ')
   const filtered = isFilterActive(filter)
 
   return (
@@ -186,22 +205,39 @@ export function BoardView() {
         }}
         accessibility={{ announcements, screenReaderInstructions: { draggable: t('board.dragInstructions') } }}
       >
-        <div className="board">
-          {columns.map((column) => (
-            <BoardColumn
-              key={column.id}
-              column={column}
-              tasks={(items[column.id] ?? []).map((id) => tasksById.get(id)).filter((task): task is Task => !!task)}
-              totalCount={totals[column.id] ?? 0}
-              dragDisabled={dragDisabled}
-            />
-          ))}
+        <div className="board" style={{ gridTemplateColumns: template }} role="group" aria-label={t('board.flow', { flow: flowLabel })}>
+          {columns.map((column, index) => {
+            const previous = columns[index - 1]
+            return (
+              <Fragment key={column.id}>
+                {previous && <FlowArrow detached={previous.role === 'backlog'} />}
+                <BoardColumn
+                  column={column}
+                  tasks={(items[column.id] ?? []).map((id) => tasksById.get(id)).filter((task): task is Task => !!task)}
+                  totalCount={totals[column.id] ?? 0}
+                  dragDisabled={dragDisabled}
+                  collapsed={column.id === collapsedColumnId}
+                  onToggleCollapse={column.role === 'backlog' ? () => updateSettings({ backlogCollapsed: !backlogCollapsed }) : undefined}
+                />
+              </Fragment>
+            )
+          })}
         </div>
         <DragOverlay dropAnimation={{ duration: 160, easing: 'ease-out' }}>
           {activeTask ? <TaskCard task={activeTask} done={columns.find((c) => c.id === activeTask.columnId)?.role === 'done'} overlay /> : null}
         </DragOverlay>
       </DndContext>
       {filtered && Object.values(visible).every((list) => list.length === 0) && <p className="hint">{t('filter.resultEmpty')}</p>}
+    </div>
+  )
+}
+
+/** Decorative connector that visualizes the flow between two columns. */
+function FlowArrow({ detached }: { detached: boolean }) {
+  return (
+    <div className={`flow-arrow${detached ? ' flow-arrow--detached' : ''}`} aria-hidden="true">
+      <span className="flow-arrow__line" />
+      <Icon name="chevronRight" size={14} />
     </div>
   )
 }

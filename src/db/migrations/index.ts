@@ -1,4 +1,6 @@
 import type { Transaction } from 'dexie'
+import type { Board, Column } from '@/features/tasks/models/schemas'
+import { missingDefaultColumns } from '@/features/board/services/defaults'
 
 /**
  * IndexedDB schema history. Rules:
@@ -23,9 +25,17 @@ export const DB_MIGRATIONS: DbMigration[] = [
       settings: 'id',
     },
   },
-  // Example for a future change:
-  // { version: 2, stores: { tasks: 'id, boardId, columnId, recurrenceSeriesId, dueDate' },
-  //   upgrade: async (tx) => { await tx.table('tasks').toCollection().modify((t) => { ... }) } },
+  {
+    // v2: adds the "Backlog" column in front of the inbox to every existing board. Tasks are untouched.
+    version: 2,
+    stores: {},
+    upgrade: async (tx) => {
+      const boards = (await tx.table('boards').toArray()) as Board[]
+      const columns = (await tx.table('columns').toArray()) as Column[]
+      const added = missingDefaultColumns(boards, columns, new Date().toISOString())
+      if (added.length) await tx.table('columns').bulkAdd(added)
+    },
+  },
 ]
 
 export const CURRENT_DB_VERSION = DB_MIGRATIONS[DB_MIGRATIONS.length - 1]!.version

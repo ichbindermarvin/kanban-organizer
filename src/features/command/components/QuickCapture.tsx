@@ -5,7 +5,7 @@ import { columnTitle, useAppStore } from '@/state/appStore'
 import { Dialog } from '@/shared/components/Dialog'
 import { useT } from '@/shared/hooks/useT'
 
-const TARGETS: ColumnRole[] = ['inbox', 'planned', 'doing']
+const TARGETS: ColumnRole[] = ['backlog', 'inbox', 'planned', 'doing']
 
 /** Global quick capture (shortcut N): title → Enter. Inbox is the default target. */
 export function QuickCapture() {

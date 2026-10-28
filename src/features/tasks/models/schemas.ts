@@ -9,7 +9,7 @@ export const PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const
 export const prioritySchema = z.enum(PRIORITIES)
 export type Priority = z.infer<typeof prioritySchema>
 
-export const COLUMN_ROLES = ['inbox', 'planned', 'doing', 'done'] as const
+export const COLUMN_ROLES = ['backlog', 'inbox', 'planned', 'doing', 'done'] as const
 export const columnRoleSchema = z.enum(COLUMN_ROLES)
 export type ColumnRole = z.infer<typeof columnRoleSchema>
 
@@ -89,6 +89,7 @@ export const settingsSchema = z.object({
   theme: z.enum(THEMES),
   locale: z.enum(LOCALES),
   activeBoardId: z.string().optional(),
+  backlogCollapsed: z.boolean().optional(),
   lastBackupAt: timestampSchema.optional(),
   updatedAt: timestampSchema,
 })

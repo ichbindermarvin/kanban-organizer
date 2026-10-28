@@ -12,6 +12,8 @@ export function buildSeedTasks(boardId: string, columns: Column[], today: string
     tasks.push(task)
     return task
   }
+  add('Garage aufräumen', 'backlog', { priority: 'low', tags: ['Privat'] })
+  add('Spanisch-Kurs recherchieren', 'backlog', { priority: 'low' })
   add('Versicherung prüfen', 'inbox', { tags: ['Finanzen'] })
   add('Geschenk bestellen', 'inbox', { tags: ['Privat'], dueDate: addDaysIso(today, -1) })
   add('Newsletter vorbereiten', 'planned', {
