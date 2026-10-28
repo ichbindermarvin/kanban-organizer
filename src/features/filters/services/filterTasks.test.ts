@@ -66,6 +66,14 @@ describe('searchTasks', () => {
   it('finds by title', () => expect(searchTasks(all, 'newsletter').map((t) => t.id)).toEqual([a.id]))
   it('finds by description, ignoring accents', () => expect(searchTasks(all, 'prufung').map((t) => t.id)).toEqual([b.id]))
   it('finds by tag', () => expect(searchTasks(all, 'handball').map((t) => t.id)).toEqual([c.id]))
+  it('finds by color name and user-defined color meaning', () => {
+    const blue = makeTask(inbox, { title: 'Angebot', color: 'blue' })
+    const terms = { blue: 'Blau Arbeit', green: 'Grün' }
+    expect(searchTasks([blue, a], 'arbeit', terms).map((t) => t.id)).toEqual([blue.id])
+    expect(searchTasks([blue, a], 'blau', terms).map((t) => t.id)).toEqual([blue.id])
+    expect(searchTasks([blue, a], 'grün', terms)).toEqual([])
+    expect(searchTasks([blue, a], 'arbeit')).toEqual([])
+  })
   it('requires all words', () => expect(searchTasks(all, 'newsletter steuer')).toEqual([]))
   it('returns nothing for an empty query', () => expect(searchTasks(all, '  ')).toEqual([]))
 })

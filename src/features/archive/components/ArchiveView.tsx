@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useAppStore } from '@/state/appStore'
 import { searchTasks } from '@/features/search/services/searchTasks'
+import { useColorSearchTerms } from '@/features/search/services/useColorSearchTerms'
 import { TaskRow } from '@/features/tasks/components/TaskList'
 import { useT } from '@/shared/hooks/useT'
 import { formatTimestamp } from '@/shared/utils/format'
@@ -12,12 +13,13 @@ export function ArchiveView() {
   const locale = useAppStore((s) => s.settings.locale)
   const archiveDone = useAppStore((s) => s.archiveDone)
   const [query, setQuery] = useState('')
+  const colorTerms = useColorSearchTerms()
 
   const archived = useMemo(() => {
     const list = tasks.filter((task) => task.archivedAt && !task.deletedAt)
-    const matched = query.trim() ? searchTasks(list, query) : list
+    const matched = query.trim() ? searchTasks(list, query, colorTerms) : list
     return matched.sort((a, b) => (b.archivedAt ?? '').localeCompare(a.archivedAt ?? ''))
-  }, [tasks, query])
+  }, [tasks, query, colorTerms])
 
   return (
     <div className="view view--list">

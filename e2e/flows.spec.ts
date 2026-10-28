@@ -294,4 +294,10 @@ test('colors get a user-defined meaning and can be filtered', async ({ page }) =
 
   await page.reload()
   await expect(card(column(page, 'Inbox'), 'Angebot schreiben')).toContainText('Arbeit')
+
+  // The search also finds tasks by the color's meaning.
+  await page.keyboard.press('/')
+  await page.keyboard.type('arbeit')
+  await expect(page.getByText('1 Treffer für „arbeit“')).toBeVisible()
+  await expect(page.locator('.row', { hasText: 'Angebot schreiben' })).toBeVisible()
 })

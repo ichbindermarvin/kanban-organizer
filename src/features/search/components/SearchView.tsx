@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useAppStore } from '@/state/appStore'
 import { searchTasks } from '@/features/search/services/searchTasks'
+import { useColorSearchTerms } from '@/features/search/services/useColorSearchTerms'
 import { TaskList } from '@/features/tasks/components/TaskList'
 import { useT } from '@/shared/hooks/useT'
 
@@ -9,7 +10,8 @@ export function SearchView() {
   const t = useT()
   const tasks = useAppStore((s) => s.tasks)
   const query = useAppStore((s) => s.searchQuery)
-  const results = useMemo(() => searchTasks(tasks, query), [tasks, query])
+  const colorTerms = useColorSearchTerms()
+  const results = useMemo(() => searchTasks(tasks, query, colorTerms), [tasks, query, colorTerms])
   const active = results.filter((task) => !task.archivedAt)
   const archived = results.filter((task) => task.archivedAt)
 

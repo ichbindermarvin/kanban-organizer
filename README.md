@@ -162,7 +162,7 @@ Wird eine Instanz erledigt (Spalte „Erledigt“, Kreis-Button, `X` oder Status
 - **Archivieren** blendet erledigte Aufgaben vom Board aus. Sie bleiben durchsuchbar und lassen sich wiederherstellen.
 - **WIP-Limits** sind weich: Beim Überschreiten fragt die App nach. Standard ist 3 für „In Arbeit“, änderbar in den Einstellungen.
 - **Filter:** Innerhalb einer Kategorie gilt ODER, zwischen Kategorien UND. „Diese Woche“ bedeutet: fällig ab heute bis Sonntag.
-- **Suche** zeigt eine globale Ergebnisliste über Board und Archiv, die sich beim Tippen aktualisiert.
+- **Suche** zeigt eine globale Ergebnisliste über Board und Archiv, die sich beim Tippen aktualisiert. Sie durchsucht Titel, Beschreibung, Tags sowie Farbname und Farb-Bedeutung („arbeit“ findet alle Karten in der Farbe mit der Bedeutung „Arbeit“).
 
 ## Future Architecture (Sync-Vorbereitung)
 
