@@ -1783,3 +1783,49 @@ p {
   flex-wrap: nowrap;
   padding: 6px 10px 8px 32px;
 }
+
+/* Color meaning */
+.dot {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c);
+}
+.dot--large {
+  width: 14px;
+  height: 14px;
+}
+.dot--none {
+  background: transparent;
+  border: 1px dashed var(--text-3);
+}
+.badge--color {
+  gap: 5px;
+  color: var(--text);
+  font-weight: 500;
+}
+.color-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.color-labels {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 8px 24px;
+  margin-top: 12px;
+}
+.color-labels__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.color-labels__name {
+  width: 56px;
+  color: var(--text-2);
+}
+.color-labels__item .input {
+  flex: 1;
+}

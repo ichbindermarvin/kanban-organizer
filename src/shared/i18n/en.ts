@@ -162,6 +162,11 @@ export const en: Record<TranslationKey, string> = {
   'filter.due.none': 'No deadline',
   'filter.tags': 'Tags',
   'filter.noTags': 'No tags yet.',
+  'filter.color': 'Color',
+  'filter.noColor': 'No color',
+  'settings.colors': 'Colors',
+  'settings.colorsHint': 'Give colors a meaning, e.g. Blue = Work. It is shown on cards, in the color picker and in the filter. Empty = color only.',
+  'settings.colorLabelFor': 'Meaning of {color}',
   'filter.reset': 'Reset filters',
   'filter.resultEmpty': 'No tasks match the filters.',
 

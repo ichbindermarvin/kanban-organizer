@@ -152,6 +152,7 @@ Wird eine Instanz erledigt (Spalte „Erledigt“, Kreis-Button, `X` oder Status
 
 - **Backlog** steht vor der Inbox, optisch abgesetzt (gestrichelt, größerer Abstand, gestrichelter Pfeil). Er ist der Ort für „irgendwann“-Ideen, die den Arbeitsfluss nicht belasten sollen. Er lässt sich einklappen, Karten können auch auf den eingeklappten Backlog gezogen werden. Ohne eigene Wahl startet er bei Fensterbreiten unter 1400 px eingeklappt, danach gilt die gespeicherte Einstellung. Quick Capture (`N`) kann direkt in den Backlog speichern, Standard bleibt die Inbox.
 - **Backlog-Aufgaben in „Heute“:** Hat eine Backlog-Aufgabe eine Deadline, erscheint sie in „Heute“, aber leicht ausgegraut und nach den Aufgaben aus dem Arbeitsfluss.
+- **Farb-Bedeutungen:** In den Einstellungen kannst Du jeder Farbe eine eigene Bedeutung geben (z. B. Blau = Arbeit). Sie erscheint als Text auf der Karte, in der Farbauswahl und im Filter. So ist Farbe nie die einzige Information. Der Filter „Farbe“ kann mit allen anderen Filtern kombiniert werden, inklusive „Ohne Farbe“.
 - **Kartenfarben** sind rein visuell und frei verwendbar: farbiger Streifen links plus leichte Tönung, die im hellen und dunklen Design funktioniert. Duplikate und neue Instanzen wiederkehrender Aufgaben übernehmen die Farbe.
 - **Flow-Pfeile** zwischen den Spalten zeigen die Richtung des Arbeitsflusses. Sie sind rein dekorativ, für Screenreader ist der Fluss als Gruppenname des Boards hinterlegt („Arbeitsfluss: Backlog → Inbox → …“).
 

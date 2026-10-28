@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { LOCALES, THEMES, type Settings } from '@/features/tasks/models/schemas'
+import { CARD_COLORS, LOCALES, THEMES, type Settings } from '@/features/tasks/models/schemas'
 import { parseBackup } from '@/features/settings/services/backup'
 import type { DataSnapshot } from '@/db/repositories/types'
 import { columnTitle, useAppStore } from '@/state/appStore'
@@ -94,6 +94,32 @@ export function SettingsView() {
             <Icon name="keyboard" />
             {t('settings.shortcuts')}
           </button>
+        </div>
+      </section>
+
+      <section className="settings-section" aria-labelledby="settings-colors">
+        <h2 id="settings-colors">{t('settings.colors')}</h2>
+        <p className="muted small">{t('settings.colorsHint')}</p>
+        <div className="color-labels">
+          {CARD_COLORS.map((color) => (
+            <label key={color} className="color-labels__item">
+              <span className={`dot dot--large color-${color}`} aria-hidden="true" />
+              <span className="color-labels__name">{t(`color.${color}`)}</span>
+              <input
+                className="input input--small"
+                maxLength={40}
+                value={settings.colorLabels?.[color] ?? ''}
+                placeholder={t('common.none')}
+                aria-label={t('settings.colorLabelFor', { color: t(`color.${color}`) })}
+                onChange={(e) => {
+                  const labels = { ...settings.colorLabels }
+                  if (e.target.value.trim()) labels[color] = e.target.value
+                  else delete labels[color]
+                  updateSettings({ colorLabels: Object.keys(labels).length ? labels : undefined })
+                }}
+              />
+            </label>
+          ))}
         </div>
       </section>
 

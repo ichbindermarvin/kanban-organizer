@@ -3,6 +3,7 @@ import { useAppStore } from '@/state/appStore'
 import { useT } from '@/shared/hooks/useT'
 import { dueState, formatDue } from '@/shared/utils/format'
 import { Icon } from '@/shared/components/Icon'
+import { colorDescription } from '@/features/tasks/services/colorLabels'
 
 export function PriorityBadge({ priority }: { priority: Task['priority'] }) {
   const t = useT()
@@ -34,11 +35,22 @@ export function DueBadge({ dueDate, completed }: { dueDate: string; completed?: 
 /** Compact secondary line of a task: priority, deadline, subtasks, recurrence, tags. */
 export function TaskMeta({ task, completed, extra }: { task: Task; completed?: boolean; extra?: React.ReactNode }) {
   const t = useT()
+  const colorLabel = useAppStore((s) => (task.color ? s.settings.colorLabels?.[task.color]?.trim() : undefined))
+  const colorText = useAppStore((s) => (task.color ? colorDescription(task.color, s.settings, t) : undefined))
   const doneSubtasks = task.subtasks.filter((s) => s.completed).length
-  const hasMeta = task.priority !== 'medium' || task.dueDate || task.subtasks.length || task.recurrence || task.tags.length || extra
+  const hasMeta = task.priority !== 'medium' || task.dueDate || task.subtasks.length || task.recurrence || task.tags.length || extra || task.color
   if (!hasMeta) return null
   return (
     <div className="task-meta">
+      {/* The color's meaning is shown as text, so color is never the only carrier of information. */}
+      {colorLabel ? (
+        <span className={`badge badge--color color-${task.color}`}>
+          <span className="dot" aria-hidden="true" />
+          <span>{colorLabel}</span>
+        </span>
+      ) : (
+        colorText && <span className="visually-hidden">{t('color.set', { color: colorText })}</span>
+      )}
       <PriorityBadge priority={task.priority} />
       {task.dueDate && <DueBadge dueDate={task.dueDate} completed={completed} />}
       {task.subtasks.length > 0 && (

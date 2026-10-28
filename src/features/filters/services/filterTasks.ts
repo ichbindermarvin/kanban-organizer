@@ -1,5 +1,5 @@
 import { endOfWeek } from 'date-fns'
-import type { Priority, Task } from '@/features/tasks/models/schemas'
+import type { CardColor, Priority, Task } from '@/features/tasks/models/schemas'
 import { fromIsoDate, toIsoDate } from '@/shared/utils/dates'
 import { byDueDate, byPosition, byPriority } from '@/features/tasks/services/taskQueries'
 
@@ -9,12 +9,18 @@ export interface TaskFilter {
   priorities: Priority[]
   due: DueFilter[]
   tags: string[]
+  /** 'none' matches tasks without a color. */
+  colors: (CardColor | 'none')[]
 }
 
-export const EMPTY_FILTER: TaskFilter = { priorities: [], due: [], tags: [] }
+export const EMPTY_FILTER: TaskFilter = { priorities: [], due: [], tags: [], colors: [] }
 
 export function isFilterActive(filter: TaskFilter): boolean {
-  return filter.priorities.length + filter.due.length + filter.tags.length > 0
+  return activeFilterCount(filter) > 0
+}
+
+export function activeFilterCount(filter: TaskFilter): number {
+  return filter.priorities.length + filter.due.length + filter.tags.length + filter.colors.length
 }
 
 function matchesDue(task: Task, due: DueFilter, today: string): boolean {
@@ -34,7 +40,7 @@ function matchesDue(task: Task, due: DueFilter, today: string): boolean {
 
 /**
  * Categories are combined with AND, options inside a category with OR.
- * Example: priority (high OR urgent) AND due (today) AND tag (Content OR Admin).
+ * Example: priority (high OR urgent) AND due (today) AND tag (Content OR Admin) AND color (blue OR green).
  */
 export function filterTasks(tasks: Task[], filter: TaskFilter, today: string): Task[] {
   const tags = filter.tags.map((t) => t.toLocaleLowerCase())
@@ -42,7 +48,8 @@ export function filterTasks(tasks: Task[], filter: TaskFilter, today: string): T
     (task) =>
       (filter.priorities.length === 0 || filter.priorities.includes(task.priority)) &&
       (filter.due.length === 0 || filter.due.some((d) => matchesDue(task, d, today))) &&
-      (tags.length === 0 || task.tags.some((t) => tags.includes(t.toLocaleLowerCase()))),
+      (tags.length === 0 || task.tags.some((t) => tags.includes(t.toLocaleLowerCase()))) &&
+      (filter.colors.length === 0 || filter.colors.includes(task.color ?? 'none')),
   )
 }
 

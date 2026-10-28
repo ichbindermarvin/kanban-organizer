@@ -3,12 +3,14 @@ import { columnTitle, useAppStore } from '@/state/appStore'
 import { Menu, type MenuEntry } from '@/shared/components/Menu'
 import { Icon } from '@/shared/components/Icon'
 import { useT } from '@/shared/hooks/useT'
+import { colorDescription } from '@/features/tasks/services/colorLabels'
 
 /** "⋯" menu on cards and rows: move without drag-and-drop, start, duplicate, archive, delete. */
 export function TaskActionsMenu({ task }: { task: Task }) {
   const t = useT()
   const locale = useAppStore((s) => s.settings.locale)
   const columns = useAppStore((s) => s.columns)
+  const settings = useAppStore((s) => s.settings)
   const store = useAppStore.getState
   const boardColumns = columns.filter((c) => c.boardId === task.boardId).sort((a, b) => a.position - b.position)
   const current = boardColumns.find((c) => c.id === task.columnId)
@@ -32,7 +34,7 @@ export function TaskActionsMenu({ task }: { task: Task }) {
       label: t('color.label'),
       options: [
         { value: 'none', label: t('color.none'), className: 'swatch--none', checked: !task.color },
-        ...CARD_COLORS.map((color) => ({ value: color, label: t('color.set', { color: t(`color.${color}`) }), className: `color-${color}`, checked: task.color === color })),
+        ...CARD_COLORS.map((color) => ({ value: color, label: t('color.set', { color: colorDescription(color, settings, t) }), className: `color-${color}`, checked: task.color === color })),
       ],
       onSelect: (value) => store().updateTask(task.id, { color: value === 'none' ? undefined : (value as CardColor) }),
     })

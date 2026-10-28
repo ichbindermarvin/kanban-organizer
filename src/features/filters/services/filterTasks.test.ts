@@ -29,9 +29,19 @@ describe('filterTasks', () => {
   it('filters by tags case-insensitively', () => {
     expect(ids(filterTasks(all, { ...EMPTY_FILTER, tags: ['Privat'] }, TODAY))).toEqual([week.id, noDate.id])
   })
+  it('filters by color, including tasks without color', () => {
+    const blue = makeTask(inbox, { color: 'blue' })
+    const green = makeTask(inbox, { color: 'green', priority: 'high' })
+    const plain = makeTask(inbox)
+    const list = [blue, green, plain]
+    expect(ids(filterTasks(list, { ...EMPTY_FILTER, colors: ['blue'] }, TODAY))).toEqual([blue.id])
+    expect(ids(filterTasks(list, { ...EMPTY_FILTER, colors: ['blue', 'none'] }, TODAY))).toEqual([blue.id, plain.id])
+    expect(ids(filterTasks(list, { ...EMPTY_FILTER, colors: ['blue', 'green'], priorities: ['high'] }, TODAY))).toEqual([green.id])
+  })
+
   it('combines categories with AND', () => {
-    expect(ids(filterTasks(all, { priorities: ['low', 'high'], due: ['week', 'overdue'], tags: ['Content'] }, TODAY))).toEqual([high.id, week.id])
-    expect(filterTasks(all, { priorities: ['urgent'], due: ['none'], tags: [] }, TODAY)).toEqual([])
+    expect(ids(filterTasks(all, { priorities: ['low', 'high'], due: ['week', 'overdue'], tags: ['Content'], colors: [] }, TODAY))).toEqual([high.id, week.id])
+    expect(filterTasks(all, { priorities: ['urgent'], due: ['none'], tags: [], colors: [] }, TODAY)).toEqual([])
   })
 })
 

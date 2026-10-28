@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { PRIORITIES } from '@/features/tasks/models/schemas'
-import { isFilterActive, type DueFilter, type TaskFilter } from '@/features/filters/services/filterTasks'
+import { CARD_COLORS, PRIORITIES, type CardColor } from '@/features/tasks/models/schemas'
+import { colorName } from '@/features/tasks/services/colorLabels'
+import { activeFilterCount, isFilterActive, type DueFilter, type TaskFilter } from '@/features/filters/services/filterTasks'
 import { allTags } from '@/features/tasks/services/taskQueries'
 import { useAppStore } from '@/state/appStore'
 import { useT } from '@/shared/hooks/useT'
@@ -23,7 +24,9 @@ export function FilterPopover() {
   const ref = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const panelId = useId()
-  const count = filter.priorities.length + filter.due.length + filter.tags.length
+  const settings = useAppStore((s) => s.settings)
+  const count = activeFilterCount(filter)
+  const colorOptions: (CardColor | 'none')[] = [...CARD_COLORS, 'none']
 
   useEffect(() => {
     if (!open) return
@@ -79,6 +82,18 @@ export function FilterPopover() {
                 {t(`filter.due.${d}`)}
               </label>
             ))}
+          </fieldset>
+          <fieldset>
+            <legend>{t('filter.color')}</legend>
+            <div className="filter-panel__tags">
+              {colorOptions.map((color) => (
+                <label key={color} className="checkbox">
+                  <input type="checkbox" checked={filter.colors.includes(color)} onChange={() => update({ colors: toggle(filter.colors, color) })} />
+                  <span className={`dot${color === 'none' ? ' dot--none' : ` color-${color}`}`} aria-hidden="true" />
+                  {color === 'none' ? t('filter.noColor') : colorName(color, settings, t)}
+                </label>
+              ))}
+            </div>
           </fieldset>
           <fieldset>
             <legend>{t('filter.tags')}</legend>

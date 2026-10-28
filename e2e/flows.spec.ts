@@ -274,3 +274,24 @@ test('cards can be colored from the menu and the drawer; backlog tasks are dimme
   await page.getByRole('link', { name: /Heute/ }).click()
   await expect(page.locator('.row', { hasText: 'Bunte Karte' })).toHaveClass(/row--dimmed/)
 })
+
+test('colors get a user-defined meaning and can be filtered', async ({ page }) => {
+  await openApp(page, '#/settings')
+  await page.getByLabel('Bedeutung für Blau').fill('Arbeit')
+  await goToBoard(page)
+  await quickCapture(page, 'Angebot schreiben')
+  await quickCapture(page, 'Fahrrad reparieren')
+
+  await card(column(page, 'Inbox'), 'Angebot schreiben').getByRole('button', { name: /Aktionen für/ }).click()
+  await page.getByRole('menuitemradio', { name: 'Farbe: Blau – Arbeit' }).click()
+  await expect(card(column(page, 'Inbox'), 'Angebot schreiben')).toContainText('Arbeit')
+
+  await page.getByRole('button', { name: 'Filter' }).click()
+  await page.getByRole('checkbox', { name: 'Arbeit' }).check()
+  await expect(column(page, 'Inbox').locator('.card__title')).toHaveText(['Angebot schreiben'])
+  await page.getByRole('checkbox', { name: 'Ohne Farbe' }).check()
+  await expect(column(page, 'Inbox').locator('.card__title')).toHaveText(['Angebot schreiben', 'Fahrrad reparieren'])
+
+  await page.reload()
+  await expect(card(column(page, 'Inbox'), 'Angebot schreiben')).toContainText('Arbeit')
+})

@@ -136,9 +136,9 @@ describe('app store with IndexedDB', () => {
 
   it('persists settings', async () => {
     const { s, reloadStore, flush } = await setup()
-    s().updateSettings({ theme: 'dark', locale: 'en' })
+    s().updateSettings({ theme: 'dark', locale: 'en', colorLabels: { blue: 'Arbeit', green: 'Privat' } })
     await flush()
-    expect((await reloadStore()).settings).toMatchObject({ theme: 'dark', locale: 'en' })
+    expect((await reloadStore()).settings).toMatchObject({ theme: 'dark', locale: 'en', colorLabels: { blue: 'Arbeit', green: 'Privat' } })
   })
 
   it('imports a backup and restores the previous state', async () => {

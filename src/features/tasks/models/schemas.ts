@@ -96,6 +96,8 @@ export const settingsSchema = z.object({
   locale: z.enum(LOCALES),
   activeBoardId: z.string().optional(),
   backlogCollapsed: z.boolean().optional(),
+  /** User-defined meaning per card color, e.g. { blue: 'Arbeit' }. */
+  colorLabels: z.record(cardColorSchema, z.string().max(40)).optional(),
   lastBackupAt: timestampSchema.optional(),
   updatedAt: timestampSchema,
 })

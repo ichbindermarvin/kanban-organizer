@@ -160,6 +160,11 @@ export const de = {
   'filter.due.none': 'Ohne Deadline',
   'filter.tags': 'Tags',
   'filter.noTags': 'Noch keine Tags vorhanden.',
+  'filter.color': 'Farbe',
+  'filter.noColor': 'Ohne Farbe',
+  'settings.colors': 'Farben',
+  'settings.colorsHint': 'Gib Farben eine Bedeutung, z. B. Blau = Arbeit. Die Bedeutung erscheint auf den Karten, in der Farbauswahl und im Filter. Leer = nur Farbe.',
+  'settings.colorLabelFor': 'Bedeutung für {color}',
   'filter.reset': 'Filter zurücksetzen',
   'filter.resultEmpty': 'Keine Aufgaben passen zu den Filtern.',
 

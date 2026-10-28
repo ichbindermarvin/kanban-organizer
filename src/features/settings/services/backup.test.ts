@@ -60,6 +60,15 @@ describe('backup import', () => {
     expect(parseBackup(JSON.stringify(broken))).toMatchObject({ ok: false, code: 'references' })
   })
 
+  it('keeps color meanings from the settings', () => {
+    const settings = { id: 'app' as const, theme: 'system' as const, locale: 'de' as const, colorLabels: { blue: 'Arbeit' }, updatedAt: NOW }
+    const result = parseBackup(JSON.stringify(buildBackup({ ...sample(), settings }, NOW)))
+    if (!result.ok) throw new Error(result.code)
+    expect(result.snapshot.settings?.colorLabels).toEqual({ blue: 'Arbeit' })
+    const broken = { ...buildBackup({ ...sample(), settings }, NOW), settings: { ...settings, colorLabels: { gold: 'x' } } }
+    expect(parseBackup(JSON.stringify(broken))).toMatchObject({ ok: false, code: 'structure' })
+  })
+
   it('rejects unknown card colors', () => {
     const file = buildBackup(sample(), NOW)
     const broken = { ...file, tasks: [{ ...file.tasks[0]!, color: 'gold' }] }
