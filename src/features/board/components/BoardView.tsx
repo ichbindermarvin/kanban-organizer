@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useMemo, useState } from 'react'
+import { NameDialog } from '@/shared/components/NameDialog'
 import {
   DndContext,
   DragOverlay,
@@ -60,6 +61,9 @@ export function BoardView() {
   const boardId = useAppStore((s) => s.activeBoardId())
   const moveTask = useAppStore((s) => s.moveTask)
   // Until the user chooses, the backlog starts collapsed on smaller screens to give the flow columns room.
+  const board = useAppStore((s) => s.boards.find((b) => b.id === boardId))
+  const renameBoard = useAppStore((s) => s.renameBoard)
+  const [renaming, setRenaming] = useState(false)
   const backlogCollapsed = useAppStore((s) => s.settings.backlogCollapsed) ?? window.innerWidth < 1400
   const updateSettings = useAppStore((s) => s.updateSettings)
 
@@ -176,7 +180,14 @@ export function BoardView() {
   return (
     <div className="view view--board">
       <div className="view__header">
-        <h1 className="view__title">{t('board.title')}</h1>
+        <div className="view__title-row">
+          <h1 className="view__title">{board?.name ?? t('board.title')}</h1>
+          {board && (
+            <button type="button" className="icon-btn" aria-label={t('boards.renameButton', { name: board.name })} onClick={() => setRenaming(true)}>
+              <Icon name="edit" />
+            </button>
+          )}
+        </div>
         <div className="toolbar">
           <ResetFilterButton />
           <FilterPopover />
@@ -228,6 +239,16 @@ export function BoardView() {
         </DragOverlay>
       </DndContext>
       {filtered && Object.values(visible).every((list) => list.length === 0) && <p className="hint">{t('filter.resultEmpty')}</p>}
+      {renaming && board && (
+        <NameDialog
+          title={t('boards.renameTitle')}
+          label={t('boards.name')}
+          initialValue={board.name}
+          submitLabel={t('common.save')}
+          onSubmit={(name) => renameBoard(board.id, name)}
+          onClose={() => setRenaming(false)}
+        />
+      )}
     </div>
   )
 }

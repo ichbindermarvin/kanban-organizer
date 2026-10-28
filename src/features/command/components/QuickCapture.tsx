@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import type { ColumnRole } from '@/features/tasks/models/schemas'
 import { columnByRole } from '@/features/board/services/defaults'
 import { columnTitle, useAppStore } from '@/state/appStore'
@@ -18,7 +18,10 @@ export function QuickCapture() {
 function QuickCaptureDialog({ initialRole, t }: { initialRole: ColumnRole; t: ReturnType<typeof useT> }) {
   const locale = useAppStore((s) => s.settings.locale)
   const columns = useAppStore((s) => s.columns)
-  const boardId = useAppStore((s) => s.activeBoardId())
+  const activeBoardId = useAppStore((s) => s.activeBoardId())
+  const allBoards = useAppStore((s) => s.boards)
+  const boards = useMemo(() => allBoards.filter((b) => !b.archivedAt).sort((a, b) => a.createdAt.localeCompare(b.createdAt)), [allBoards])
+  const [boardId, setBoardId] = useState(activeBoardId)
   const { addTask, closeQuickCapture, showToast } = useAppStore.getState()
   const [title, setTitle] = useState('')
   const [role, setRole] = useState<ColumnRole>(initialRole)
@@ -71,6 +74,15 @@ function QuickCaptureDialog({ initialRole, t }: { initialRole: ColumnRole; t: Re
               )
             })}
           </div>
+          {boards.length > 1 && (
+            <select className="select select--small" aria-label={t('boards.heading')} value={boardId} onChange={(e) => setBoardId(e.target.value)}>
+              {boards.map((board) => (
+                <option key={board.id} value={board.id}>
+                  {board.name}
+                </option>
+              ))}
+            </select>
+          )}
           <span className="muted small">{t('quick.hint')}</span>
           <button type="submit" className="btn btn--primary btn--small" disabled={!title.trim()}>
             {t('quick.save')}

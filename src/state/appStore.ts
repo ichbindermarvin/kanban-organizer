@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { Board, Column, ColumnRole, Settings, Task } from '@/features/tasks/models/schemas'
 import type { DataSnapshot, Repositories } from '@/db/repositories/types'
 import { StorageError, type StorageErrorKind } from '@/db/database'
-import { columnByRole, createDefaultBoard, missingDefaultColumns } from '@/features/board/services/defaults'
+import { MAX_BOARDS, columnByRole, createDefaultBoard, missingDefaultColumns } from '@/features/board/services/defaults'
 import { moveTask as computeMove, wouldExceedWip } from '@/features/board/services/moveTask'
 import { applyCompletionState, buildNextRecurrence, createTask, duplicateTask } from '@/features/tasks/services/taskOperations'
 import { tasksInColumn } from '@/features/tasks/services/taskQueries'
@@ -60,6 +60,13 @@ export interface AppState {
 
   activeBoardId(): string
   boardColumns(): Column[]
+  activeBoards(): Board[]
+
+  createBoard(name: string): Board | undefined
+  renameBoard(boardId: string, name: string): void
+  setActiveBoard(boardId: string): void
+  deleteBoard(boardId: string): void
+  undoDeleteBoard(boardId: string, deletedAt: string): void
 
   addTask(title: string, columnId: string, extra?: Partial<Pick<Task, 'dueDate' | 'priority' | 'tags'>>): Task | undefined
   updateTask(id: string, patch: Partial<Omit<Task, 'id' | 'columnId' | 'position' | 'createdAt'>>): void
@@ -104,15 +111,22 @@ export function createAppStore() {
   return create<AppState>()((set, get) => {
     const t = (key: TranslationKey, params?: Record<string, string | number>) => translate(get().settings.locale, key, params)
 
-    /** Persists in the background. On failure the UI is rolled back to the last stored state. */
+    /**
+     * Writes run strictly one after another in the order the changes happened, so an older write can
+     * never overwrite a newer one. On failure the UI is rolled back to the last stored state.
+     */
+    let writeQueue: Promise<void> = Promise.resolve()
     const persist = (operation: (repos: Repositories) => Promise<void>) => {
       const repos = get().repos
       if (!repos) return Promise.resolve()
-      return operation(repos).catch(async (error: unknown) => {
-        console.error(error)
-        get().showToast({ message: t('toast.saveFailed'), tone: 'error' })
-        await get().reload().catch(() => undefined)
-      })
+      writeQueue = writeQueue.then(() =>
+        operation(repos).catch(async (error: unknown) => {
+          console.error(error)
+          get().showToast({ message: t('toast.saveFailed'), tone: 'error' })
+          await get().reload().catch(() => undefined)
+        }),
+      )
+      return writeQueue
     }
 
     /** Optimistically merges changed tasks into state and persists them. */
@@ -211,6 +225,78 @@ export function createAppStore() {
         return get()
           .columns.filter((c) => c.boardId === boardId)
           .sort((a, b) => a.position - b.position)
+      },
+
+      activeBoards() {
+        return get()
+          .boards.filter((b) => !b.archivedAt)
+          .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
+      },
+
+      createBoard(name) {
+        const trimmed = name.trim()
+        if (!trimmed || get().activeBoards().length >= MAX_BOARDS) return undefined
+        const { board, columns } = createDefaultBoard(nowTimestamp(), trimmed)
+        set((state) => ({ boards: [...state.boards, board], columns: [...state.columns, ...columns] }))
+        void persist(async (repos) => {
+          await repos.boards.saveMany([board])
+          await repos.columns.saveMany(columns)
+        })
+        get().setActiveBoard(board.id)
+        return board
+      },
+
+      renameBoard(boardId, name) {
+        const board = get().boards.find((b) => b.id === boardId)
+        const trimmed = name.trim()
+        if (!board || !trimmed || trimmed === board.name) return
+        const updated = { ...board, name: trimmed, updatedAt: nowTimestamp() }
+        set((state) => ({ boards: state.boards.map((b) => (b.id === boardId ? updated : b)) }))
+        void persist((repos) => repos.boards.saveMany([updated]))
+      },
+
+      setActiveBoard(boardId) {
+        if (get().settings.activeBoardId !== boardId) get().updateSettings({ activeBoardId: boardId })
+        set({ filter: EMPTY_FILTER, view: 'board', searchQuery: '' })
+      },
+
+      deleteBoard(boardId) {
+        const remaining = get().activeBoards().filter((b) => b.id !== boardId)
+        const board = get().boards.find((b) => b.id === boardId)
+        // The last board can never be deleted.
+        if (!board || remaining.length === 0) return
+        const now = nowTimestamp()
+        const archivedBoard = { ...board, archivedAt: now, updatedAt: now }
+        set((state) => ({ boards: state.boards.map((b) => (b.id === boardId ? archivedBoard : b)) }))
+        void persist((repos) => repos.boards.saveMany([archivedBoard]))
+        // Tasks become tombstones (same timestamp) so the deletion can be undone and later synced.
+        commitTasks(get().tasks.filter((task) => task.boardId === boardId && !task.deletedAt).map((task) => ({ ...task, deletedAt: now, updatedAt: now })))
+        if (get().activeBoardId() === boardId || get().settings.activeBoardId === boardId) get().updateSettings({ activeBoardId: remaining[0]!.id })
+        if (get().drawerTaskId && get().tasks.find((task) => task.id === get().drawerTaskId)?.boardId === boardId) set({ drawerTaskId: undefined })
+        get().showToast({
+          message: t('toast.boardDeleted', { name: board.name }),
+          actionLabel: t('common.undo'),
+          action: () => get().undoDeleteBoard(boardId, now),
+        })
+      },
+
+      undoDeleteBoard(boardId, deletedAt) {
+        const board = get().boards.find((b) => b.id === boardId)
+        if (!board?.archivedAt || get().activeBoards().length >= MAX_BOARDS) return
+        const now = nowTimestamp()
+        const { archivedAt: _removed, ...restored } = board
+        const updated = { ...restored, updatedAt: now }
+        set((state) => ({ boards: state.boards.map((b) => (b.id === boardId ? updated : b)) }))
+        void persist((repos) => repos.boards.saveMany([updated]))
+        commitTasks(
+          get()
+            .tasks.filter((task) => task.boardId === boardId && task.deletedAt === deletedAt)
+            .map((task) => {
+              const { deletedAt: _d, ...rest } = task
+              return { ...rest, updatedAt: now }
+            }),
+        )
+        get().setActiveBoard(boardId)
       },
 
       addTask(title, columnId, extra) {

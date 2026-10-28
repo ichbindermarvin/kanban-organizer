@@ -27,6 +27,7 @@ function TaskDrawer({ task }: { task: Task }) {
   const locale = useAppStore((s) => s.settings.locale)
   const today = useAppStore((s) => s.today)
   const columns = useAppStore((s) => s.columns)
+  const boardName = useAppStore((s) => (s.boards.filter((b) => !b.archivedAt).length > 1 ? s.boards.find((b) => b.id === task.boardId)?.name : undefined))
   const { updateTask, moveToColumn, closeDrawer, archiveTask, restoreTask, deleteTask, duplicateTask, openDrawer } = useAppStore.getState()
   const ref = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLTextAreaElement>(null)
@@ -56,7 +57,10 @@ function TaskDrawer({ task }: { task: Task }) {
           <h2 id={ids.heading} className="visually-hidden">
             {t('drawer.label')}
           </h2>
-          <span className={`badge badge--column badge--col-${current?.role}`}>{current ? columnTitle(current, locale) : ''}</span>
+          <span className={`badge badge--column badge--col-${current?.role}`}>
+            {boardName ? `${boardName} · ` : ''}
+            {current ? columnTitle(current, locale) : ''}
+          </span>
           {task.archivedAt && <span className="badge badge--subtle">{t('search.archived')}</span>}
           <button type="button" className="icon-btn" aria-label={t('drawer.close')} onClick={closeDrawer}>
             <Icon name="close" />

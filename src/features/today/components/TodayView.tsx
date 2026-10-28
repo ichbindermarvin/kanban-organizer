@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useAppStore } from '@/state/appStore'
+import { useActiveBoardTasks } from '@/features/board/services/useActiveBoardTasks'
 import { selectToday } from '@/features/today/services/selectToday'
 import { columnByRole } from '@/features/board/services/defaults'
 import { TaskList } from '@/features/tasks/components/TaskList'
@@ -10,7 +11,6 @@ import { Icon } from '@/shared/components/Icon'
 
 export function TodayView() {
   const t = useT()
-  const tasks = useAppStore((s) => s.tasks)
   const columns = useAppStore((s) => s.columns)
   const today = useAppStore((s) => s.today)
   const locale = useAppStore((s) => s.settings.locale)
@@ -18,7 +18,7 @@ export function TodayView() {
   const addTask = useAppStore((s) => s.addTask)
   const [title, setTitle] = useState('')
 
-  const boardTasks = useMemo(() => tasks.filter((task) => task.boardId === boardId), [tasks, boardId])
+  const boardTasks = useActiveBoardTasks()
   const sections = useMemo(() => selectToday(boardTasks, columns, today), [boardTasks, columns, today])
   const empty = sections.overdue.length + sections.dueToday.length + sections.inProgress.length === 0
   const planned = columnByRole(columns, boardId, 'planned')

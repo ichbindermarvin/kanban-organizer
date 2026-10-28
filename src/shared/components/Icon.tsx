@@ -29,6 +29,7 @@ const PATHS = {
   arrowUp: 'M12 19V5M6 11l6-6 6 6',
   priority: 'M12 3v12M12 19h.01',
   download: 'M12 3v12M7 10l5 5 5-5M5 21h14',
+  edit: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4',
   chevronLeft: 'M15 6l-6 6 6 6',
   chevronRight: 'M9 6l6 6-6 6',
   upload: 'M12 21V9M7 14l5-5 5 5M5 3h14',

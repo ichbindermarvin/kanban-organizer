@@ -150,6 +150,9 @@ Wird eine Instanz erledigt (Spalte „Erledigt“, Kreis-Button, `X` oder Status
 
 ## Weitere Produktentscheidungen
 
+- **Mehrere Boards (bis zu 3):** Die Boards stehen in der Sidebar. Über „⋯“ lassen sie sich umbenennen oder löschen, das Löschen lässt sich rückgängig machen. Das letzte Board kann nicht gelöscht werden. Jedes neue Board startet mit den Standardspalten. „Heute“, „Überfällig“ und „Hohe Priorität“ zeigen Aufgaben aus allen Boards, mit dem Board-Namen an der Aufgabe. Board, Filter und Quick Capture beziehen sich auf das aktive Board, in Quick Capture lässt sich das Board aber wählen.
+- **Spalten umbenennen:** über „⋯“ an der Spalte. Leer lassen stellt den Standardnamen wieder her. Die Logik (z. B. „Erledigt“ setzt `completedAt`) hängt an der festen Rolle der Spalte, nicht am Namen. Umbenennen ist deshalb gefahrlos.
+
 - **Backlog** steht vor der Inbox, optisch abgesetzt (gestrichelt, größerer Abstand, gestrichelter Pfeil). Er ist der Ort für „irgendwann“-Ideen, die den Arbeitsfluss nicht belasten sollen. Er lässt sich einklappen, Karten können auch auf den eingeklappten Backlog gezogen werden. Ohne eigene Wahl startet er bei Fensterbreiten unter 1400 px eingeklappt, danach gilt die gespeicherte Einstellung. Quick Capture (`N`) kann direkt in den Backlog speichern, Standard bleibt die Inbox.
 - **Backlog-Aufgaben in „Heute“:** Hat eine Backlog-Aufgabe eine Deadline, erscheint sie in „Heute“, aber leicht ausgegraut und nach den Aufgaben aus dem Arbeitsfluss.
 - **Farb-Bedeutungen:** In den Einstellungen kannst Du jeder Farbe eine eigene Bedeutung geben (z. B. Blau = Arbeit). Sie erscheint als Text auf der Karte, in der Farbauswahl und im Filter. So ist Farbe nie die einzige Information. Der Filter „Farbe“ kann mit allen anderen Filtern kombiniert werden, inklusive „Ohne Farbe“.
@@ -171,8 +174,9 @@ Cloud-Sync ist bewusst nicht implementiert. Vorbereitet ist Folgendes:
 - **Globale UUIDs** (`crypto.randomUUID()`) statt Auto-Increment-IDs.
 - **`createdAt` und `updatedAt`** (ISO-8601) auf allen Boards, Spalten und Aufgaben. Jede Änderung aktualisiert `updatedAt`, das ist die Basis für Konflikterkennung („last write wins“ pro Objekt).
 - **Löschmarkierungen** (`deletedAt`), damit Löschungen synchronisierbar sind.
+- **Geordnete Schreibvorgänge:** Alle Änderungen werden in einer Warteschlange gespeichert, eine ältere Änderung kann nie eine neuere überschreiben.
 - **Repository-Interfaces** (`src/db/repositories/types.ts`): Ein `RemoteTaskRepository` oder ein synchronisierender Wrapper kann ergänzt werden, ohne die UI zu ändern.
-- **Mehrere Boards im Datenmodell:** `boardId` steht an Spalten und Aufgaben, Spalten haben eine feste `role`. Ein Board-Switcher ist reine UI-Arbeit.
+- **Mehrere Boards:** `boardId` steht an Spalten und Aufgaben, Spalten haben eine feste `role`. Gelöschte Boards bleiben als Markierung (`archivedAt`) erhalten, ihre Aufgaben als Löschmarkierung.
 - **Serialisierbare Datenobjekte** und versionierte Schemas für Datenbank und Backup.
 
 ## Hosting

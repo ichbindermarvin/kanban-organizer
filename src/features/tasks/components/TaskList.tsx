@@ -17,13 +17,14 @@ export function TaskRow({ task, showColumn = true, extra, dimBacklog }: TaskRowP
   const t = useT()
   const locale = useAppStore((s) => s.settings.locale)
   const column = useAppStore((s) => s.columns.find((c) => c.id === task.columnId))
+  const boardName = useAppStore((s) => (s.boards.filter((b) => !b.archivedAt).length > 1 ? s.boards.find((b) => b.id === task.boardId)?.name : undefined))
   const openDrawer = useAppStore((s) => s.openDrawer)
   const selectTask = useAppStore((s) => s.selectTask)
   const selected = useAppStore((s) => s.selectedTaskId === task.id)
   const done = column?.role === 'done'
   const title = task.title || t('task.untitled')
   const columnBadge =
-    showColumn && column ? <span className={`badge badge--column badge--col-${column.role}`}>{columnTitle(column, locale)}</span> : null
+    showColumn && column ? <span className={`badge badge--column badge--col-${column.role}`}>{boardName ? `${boardName} · ` : ''}{columnTitle(column, locale)}</span> : null
 
   return (
     <li

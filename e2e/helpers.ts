@@ -23,7 +23,7 @@ export async function quickCapture(page: Page, title: string) {
 }
 
 export async function goToBoard(page: Page) {
-  await page.getByRole('link', { name: 'Board' }).click()
+  await page.getByRole('list', { name: 'Boards' }).getByRole('link').first().click()
   await expect(page.locator('.board')).toBeVisible()
 }
 

@@ -134,6 +134,56 @@ describe('app store with IndexedDB', () => {
     expect(s().tasks).toHaveLength(2)
   })
 
+  it('creates up to 3 boards with default columns and renames boards and columns', async () => {
+    const { s, reloadStore, flush } = await setup()
+    const work = s().createBoard('Arbeit')!
+    expect(s().activeBoardId()).toBe(work.id)
+    expect(s().boardColumns().map((c) => c.role)).toEqual(['backlog', 'inbox', 'planned', 'doing', 'done'])
+    expect(s().createBoard('Verein')).toBeDefined()
+    expect(s().createBoard('Zu viel')).toBeUndefined()
+    expect(s().activeBoards()).toHaveLength(3)
+
+    s().renameBoard(work.id, 'Job')
+    const inbox = s().columns.find((c) => c.boardId === work.id && c.role === 'inbox')!
+    s().updateColumn(inbox.id, { title: 'Eingang' })
+    await flush()
+    const reloaded = await reloadStore()
+    expect(reloaded.boards.find((b) => b.id === work.id)!.name).toBe('Job')
+    expect(reloaded.columns.find((c) => c.id === inbox.id)!.title).toBe('Eingang')
+    expect(reloaded.activeBoards()).toHaveLength(3)
+  })
+
+  it('keeps tasks of different boards apart', async () => {
+    const { s } = await setup()
+    const personal = s().activeBoardId()
+    s().addTask('Privat', s().boardColumns().find((c) => c.role === 'inbox')!.id)
+    s().createBoard('Arbeit')
+    s().addTask('Job', s().boardColumns().find((c) => c.role === 'inbox')!.id)
+    const byBoard = (id: string) => s().tasks.filter((task) => task.boardId === id).map((task) => task.title)
+    expect(byBoard(personal)).toEqual(['Privat'])
+    expect(byBoard(s().activeBoardId())).toEqual(['Job'])
+  })
+
+  it('deletes a board with its tasks, can undo it, and never deletes the last board', async () => {
+    const { s, reloadStore, flush } = await setup()
+    const first = s().activeBoardId()
+    s().deleteBoard(first)
+    expect(s().activeBoards()).toHaveLength(1)
+
+    const work = s().createBoard('Arbeit')!
+    const task = s().addTask('Job', s().boardColumns().find((c) => c.role === 'inbox')!.id)!
+    s().deleteBoard(work.id)
+    expect(s().activeBoards().map((b) => b.id)).toEqual([first])
+    expect(s().activeBoardId()).toBe(first)
+    expect(s().tasks.find((t) => t.id === task.id)!.deletedAt).toBeDefined()
+
+    s().toasts.at(-1)!.action!()
+    expect(s().activeBoards()).toHaveLength(2)
+    expect(s().tasks.find((t) => t.id === task.id)!.deletedAt).toBeUndefined()
+    await flush()
+    expect((await reloadStore()).activeBoards()).toHaveLength(2)
+  })
+
   it('persists settings', async () => {
     const { s, reloadStore, flush } = await setup()
     s().updateSettings({ theme: 'dark', locale: 'en', colorLabels: { blue: 'Arbeit', green: 'Privat' } })

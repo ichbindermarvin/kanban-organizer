@@ -1,4 +1,7 @@
-import { memo } from 'react'
+import { memo, useState } from 'react'
+import { NameDialog } from '@/shared/components/NameDialog'
+import { translate } from '@/shared/i18n'
+import type { MenuEntry } from '@/shared/components/Menu'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import type { Column, Task } from '@/features/tasks/models/schemas'
@@ -25,12 +28,36 @@ export const BoardColumn = memo(function BoardColumn({ column, tasks, totalCount
   const t = useT()
   const locale = useAppStore((s) => s.settings.locale)
   const archiveDone = useAppStore((s) => s.archiveDone)
+  const updateColumn = useAppStore((s) => s.updateColumn)
+  const [renaming, setRenaming] = useState(false)
   const { setNodeRef, isOver } = useDroppable({ id: COLUMN_PREFIX + column.id })
   const name = columnTitle(column, locale)
   const headingId = `column-heading-${column.id}`
   const limit = column.wipLimit
   const wipState = limit ? (totalCount > limit ? 'over' : totalCount === limit ? 'full' : 'ok') : undefined
   const done = column.role === 'done'
+  const defaultName = translate(locale, `column.${column.role}`)
+  const menuEntries: MenuEntry[] = [{ type: 'item', label: t('column.rename'), icon: <Icon name="edit" />, onSelect: () => setRenaming(true) }]
+  if (done) {
+    menuEntries.push(
+      { type: 'separator' },
+      { type: 'item', label: t('column.archiveDone'), icon: <Icon name="archive" />, onSelect: () => archiveDone() },
+      { type: 'item', label: t('column.archiveOld'), icon: <Icon name="archive" />, onSelect: () => archiveDone(30) },
+    )
+  }
+  const renameDialog = renaming && (
+    <NameDialog
+      title={t('column.renameTitle')}
+      label={t('boards.name')}
+      initialValue={column.title}
+      placeholder={defaultName}
+      hint={t('column.renameHint', { name: defaultName })}
+      allowEmpty
+      submitLabel={t('common.save')}
+      onSubmit={(title) => updateColumn(column.id, { title })}
+      onClose={() => setRenaming(false)}
+    />
+  )
 
   const toggle = onToggleCollapse && (
     <button
@@ -54,6 +81,7 @@ export const BoardColumn = memo(function BoardColumn({ column, tasks, totalCount
         <span className="column__count" aria-label={t('column.count', { count: totalCount })}>
           {totalCount}
         </span>
+        {renameDialog}
       </section>
     )
   }
@@ -75,17 +103,7 @@ export const BoardColumn = memo(function BoardColumn({ column, tasks, totalCount
             {totalCount}
           </span>
         )}
-        {done && (
-          <Menu
-            label={t('column.menu')}
-            trigger={<Icon name="more" />}
-            triggerClassName="icon-btn icon-btn--sm column__menu"
-            entries={[
-              { type: 'item', label: t('column.archiveDone'), icon: <Icon name="archive" />, onSelect: () => archiveDone() },
-              { type: 'item', label: t('column.archiveOld'), icon: <Icon name="archive" />, onSelect: () => archiveDone(30) },
-            ]}
-          />
-        )}
+        <Menu label={`${t('column.menu')}: ${name}`} trigger={<Icon name="more" />} triggerClassName="icon-btn icon-btn--sm column__menu" entries={menuEntries} />
         {toggle}
       </header>
       <SortableContext id={column.id} items={tasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
@@ -99,6 +117,7 @@ export const BoardColumn = memo(function BoardColumn({ column, tasks, totalCount
           {!done && <ColumnComposer columnId={column.id} columnName={name} />}
         </div>
       </SortableContext>
+      {renameDialog}
     </section>
   )
 })

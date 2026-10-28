@@ -57,7 +57,8 @@ test('Flow 2c – move without a mouse: keyboard drag and "Verschieben nach"', a
   const live = page.locator('[id^="DndLiveRegion"]')
   await card(inbox, 'Tastatur').getByRole('button', { name: 'Verschieben nach … Tastatur' }).focus()
   await page.keyboard.press('Space')
-  await expect(live).toHaveText(/Aufgabe Tastatur (aufgenommen\.|ist über Inbox\.)/)
+  // "ist über Inbox" follows the pick-up once dnd-kit has measured the droppables.
+  await expect(live).toHaveText('Aufgabe Tastatur ist über Inbox.')
   await page.keyboard.press('ArrowRight')
   await expect(live).toHaveText('Aufgabe Tastatur ist über Geplant.')
   await page.keyboard.press('Space')
@@ -300,4 +301,62 @@ test('colors get a user-defined meaning and can be filtered', async ({ page }) =
   await page.keyboard.type('arbeit')
   await expect(page.getByText('1 Treffer für „arbeit“')).toBeVisible()
   await expect(page.locator('.row', { hasText: 'Angebot schreiben' })).toBeVisible()
+})
+
+test('up to three boards; boards and columns can be renamed', async ({ page }) => {
+  await openApp(page, '#/board')
+  const boards = page.getByRole('list', { name: 'Boards' })
+  await quickCapture(page, 'Privat-Aufgabe')
+
+  for (const name of ['Arbeit', 'Verein']) {
+    await boards.getByRole('button', { name: 'Neues Board' }).click()
+    await page.getByLabel('Name').fill(name)
+    await page.keyboard.press('Enter')
+    await expect(page.getByRole('heading', { level: 1, name })).toBeVisible()
+  }
+  await expect(boards.getByRole('button', { name: 'Neues Board' })).toBeDisabled()
+  await expect(page.locator('section.column h2')).toHaveText(['Backlog', 'Inbox', 'Geplant', 'In Arbeit', 'Erledigt'])
+  await expect(card(page, 'Privat-Aufgabe')).toHaveCount(0)
+
+  // Rename the board via the title button and a column via its menu.
+  await page.getByRole('button', { name: 'Board „Verein“ umbenennen' }).click()
+  await page.getByLabel('Name').fill('Handball')
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('heading', { level: 1, name: 'Handball' })).toBeVisible()
+  await column(page, 'Inbox').getByRole('button', { name: 'Spaltenaktionen: Inbox' }).click()
+  await page.getByRole('menuitem', { name: 'Spalte umbenennen' }).click()
+  await page.getByLabel('Name').fill('Ideen')
+  await page.keyboard.press('Enter')
+  await expect(column(page, 'Ideen')).toBeVisible()
+
+  // Quick capture goes to the active board; Today spans all boards and names the board.
+  await page.keyboard.press('n')
+  await page.keyboard.type('Training planen')
+  await page.keyboard.press('Enter')
+  await expect(card(column(page, 'Ideen'), 'Training planen')).toBeVisible()
+
+  await page.reload()
+  await expect(page.getByRole('heading', { level: 1, name: 'Handball' })).toBeVisible()
+  await expect(column(page, 'Ideen')).toBeVisible()
+  await boards.getByRole('link', { name: 'Persönlich' }).click()
+  await expect(card(column(page, 'Inbox'), 'Privat-Aufgabe')).toBeVisible()
+
+  // Delete a board (with undo).
+  await boards.getByRole('button', { name: 'Aktionen für Board „Arbeit“' }).click()
+  await page.getByRole('menuitem', { name: 'Board löschen' }).click()
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Board löschen' }).click()
+  await expect(boards.getByRole('link', { name: 'Arbeit' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'Rückgängig' }).click()
+  await expect(boards.getByRole('link', { name: 'Arbeit' })).toBeVisible()
+})
+
+test('Today shows tasks of all boards with the board name', async ({ page }) => {
+  await openApp(page, '#/board')
+  await page.getByRole('list', { name: 'Boards' }).getByRole('button', { name: 'Neues Board' }).click()
+  await page.getByLabel('Name').fill('Arbeit')
+  await page.keyboard.press('Enter')
+  await page.getByRole('link', { name: /Heute/ }).click()
+  await page.getByLabel('Neue Aufgabe – Heute').fill('Report abgeben')
+  await page.keyboard.press('Enter')
+  await expect(page.locator('.row', { hasText: 'Report abgeben' })).toContainText('Arbeit · Geplant')
 })

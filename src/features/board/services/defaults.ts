@@ -3,6 +3,9 @@ import { newId } from '@/shared/utils/id'
 
 /** Flow order of the board. The backlog sits in front of the inbox. */
 export const DEFAULT_COLUMN_ROLES: ColumnRole[] = ['backlog', 'inbox', 'planned', 'doing', 'done']
+/** Upper limit of boards. Keeps the tool personal and the navigation calm. */
+export const MAX_BOARDS = 3
+
 export const DEFAULT_WIP_LIMITS: Partial<Record<ColumnRole, number>> = { doing: 3 }
 
 function buildColumn(boardId: string, role: ColumnRole, position: number, now: string): Column {

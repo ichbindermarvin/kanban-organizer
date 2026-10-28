@@ -5,6 +5,7 @@ import { selectToday, selectHighPriority } from '@/features/today/services/selec
 import { useT } from '@/shared/hooks/useT'
 import { Icon, type IconName } from '@/shared/components/Icon'
 import type { TranslationKey } from '@/shared/i18n'
+import { SidebarBoards } from './SidebarBoards'
 
 interface NavItem {
   view: View
@@ -21,11 +22,12 @@ export function Sidebar() {
   const columns = useAppStore((s) => s.columns)
   const today = useAppStore((s) => s.today)
   const lastBackupAt = useAppStore((s) => s.settings.lastBackupAt)
-  const boardId = useAppStore((s) => s.activeBoardId())
+  const boards = useAppStore((s) => s.boards)
   const { setView, openQuickCapture, setHelpOpen } = useAppStore.getState()
 
   const counts = useMemo(() => {
-    const boardTasks = tasks.filter((task) => task.boardId === boardId)
+    const activeBoardIds = new Set(boards.filter((b) => !b.archivedAt).map((b) => b.id))
+    const boardTasks = tasks.filter((task) => activeBoardIds.has(task.boardId))
     const sections = selectToday(boardTasks, columns, today)
     return {
       today: sections.overdue.length + sections.dueToday.length + sections.inProgress.length,
@@ -33,14 +35,13 @@ export function Sidebar() {
       high: selectHighPriority(boardTasks, columns).length,
       total: tasks.filter((task) => !task.deletedAt).length,
     }
-  }, [tasks, columns, today, boardId])
+  }, [tasks, columns, today, boards])
 
   const backupAge = lastBackupAt ? differenceInCalendarDays(new Date(), new Date(lastBackupAt)) : undefined
   const showBackupHint = counts.total >= 5 && (backupAge === undefined || backupAge >= 7)
 
   const primary: NavItem[] = [
     { view: 'today', label: 'nav.today', icon: 'today', count: counts.today },
-    { view: 'board', label: 'nav.board', icon: 'board' },
   ]
   const views: NavItem[] = [
     { view: 'overdue', label: 'nav.overdue', icon: 'overdue', count: counts.overdue, tone: 'alert' },
@@ -81,6 +82,7 @@ export function Sidebar() {
       </button>
 
       <ul className="nav">{primary.map(renderItem)}</ul>
+      <SidebarBoards />
       <p className="nav__heading" id="nav-views">
         {t('nav.views')}
       </p>
