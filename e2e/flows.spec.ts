@@ -228,8 +228,8 @@ test('search, duplicate, archive and restore', async ({ page }) => {
 
 test('backlog sits in front of the inbox, accepts tasks and can be collapsed', async ({ page }) => {
   await openApp(page, '#/board')
-  await expect(page.getByRole('group', { name: 'Arbeitsfluss: Backlog → Inbox → Geplant → In Arbeit → Erledigt' })).toBeVisible()
-  await expect(page.locator('section.column h2')).toHaveText(['Backlog', 'Inbox', 'Geplant', 'In Arbeit', 'Erledigt'])
+  await expect(page.getByRole('group', { name: 'Arbeitsfluss: Backlog → Inbox → Geplant / Blockiert → In Arbeit → Erledigt' })).toBeVisible()
+  await expect(page.locator('section.column h2')).toHaveText(['Backlog', 'Inbox', 'Geplant', 'Blockiert', 'In Arbeit', 'Erledigt'])
 
   await quickCapture(page, 'Irgendwann')
   await dragCardTo(page, card(column(page, 'Inbox'), 'Irgendwann'), column(page, 'Backlog'))
@@ -315,7 +315,7 @@ test('up to three boards; boards and columns can be renamed', async ({ page }) =
     await expect(page.getByRole('heading', { level: 1, name })).toBeVisible()
   }
   await expect(boards.getByRole('button', { name: 'Neues Board' })).toBeDisabled()
-  await expect(page.locator('section.column h2')).toHaveText(['Backlog', 'Inbox', 'Geplant', 'In Arbeit', 'Erledigt'])
+  await expect(page.locator('section.column h2')).toHaveText(['Backlog', 'Inbox', 'Geplant', 'Blockiert', 'In Arbeit', 'Erledigt'])
   await expect(card(page, 'Privat-Aufgabe')).toHaveCount(0)
 
   // Rename the board via the title button and a column via its menu.
@@ -359,4 +359,38 @@ test('Today shows tasks of all boards with the board name', async ({ page }) => 
   await page.getByLabel('Neue Aufgabe – Heute').fill('Report abgeben')
   await page.keyboard.press('Enter')
   await expect(page.locator('.row', { hasText: 'Report abgeben' })).toContainText('Arbeit · Geplant')
+})
+
+test('"Blockiert" sits below "Geplant", can be collapsed, renamed and receives drops when collapsed', async ({ page }) => {
+  await openApp(page, '#/board')
+  const planned = column(page, 'Geplant')
+  const blocked = column(page, 'Blockiert')
+  const plannedOpen = (await planned.boundingBox())!
+  const blockedBox = (await blocked.boundingBox())!
+  // Same track, stacked: same x, blocked below planned, roughly half the height each.
+  expect(Math.abs(blockedBox.x - plannedOpen.x)).toBeLessThan(2)
+  expect(blockedBox.y).toBeGreaterThan(plannedOpen.y + plannedOpen.height - 1)
+  expect(Math.abs(blockedBox.height - plannedOpen.height)).toBeLessThan(40)
+
+  await quickCapture(page, 'Wartet auf Freigabe')
+  await dragCardTo(page, card(column(page, 'Inbox'), 'Wartet auf Freigabe'), blocked)
+  await expect(card(blocked, 'Wartet auf Freigabe')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Blockiert einklappen' }).click()
+  await expect(card(page, 'Wartet auf Freigabe')).toHaveCount(0)
+  const plannedFull = (await planned.boundingBox())!
+  expect(plannedFull.height).toBeGreaterThan(plannedOpen.height * 1.7)
+
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Blockiert ausklappen' })).toHaveAttribute('aria-expanded', 'false')
+  await quickCapture(page, 'Zweiter Blocker')
+  await dragCardTo(page, card(column(page, 'Inbox'), 'Zweiter Blocker'), column(page, 'Blockiert'))
+  await expect(column(page, 'Blockiert')).toContainText('2')
+
+  await column(page, 'Blockiert').getByRole('button', { name: 'Spaltenaktionen: Blockiert' }).click()
+  await page.getByRole('menuitem', { name: 'Spalte umbenennen' }).click()
+  await page.getByLabel('Name').fill('Wartet')
+  await page.keyboard.press('Enter')
+  await page.getByRole('button', { name: 'Wartet ausklappen' }).click()
+  await expect(column(page, 'Wartet').locator('.card__title')).toHaveText(['Wartet auf Freigabe', 'Zweiter Blocker'])
 })

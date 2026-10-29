@@ -81,7 +81,7 @@ export interface AppState {
   restoreTask(taskId: string): void
   duplicateTask(taskId: string): Task | undefined
   archiveDone(olderThanDays?: number): number
-  updateColumn(columnId: string, patch: Partial<Pick<Column, 'wipLimit' | 'title'>>): void
+  updateColumn(columnId: string, patch: Partial<Pick<Column, 'wipLimit' | 'title' | 'collapsed'>>): void
   updateSettings(patch: Partial<Omit<Settings, 'id' | 'updatedAt'>>): void
   importSnapshot(snapshot: DataSnapshot): Promise<{ ok: true } | { ok: false }>
   exportSnapshot(): DataSnapshot

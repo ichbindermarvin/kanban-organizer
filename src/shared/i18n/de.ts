@@ -38,6 +38,7 @@ export const de = {
   'toast.boardDeleted': 'Board „{name}“ gelöscht',
   'column.inbox': 'Inbox',
   'column.planned': 'Geplant',
+  'column.blocked': 'Blockiert',
   'column.doing': 'In Arbeit',
   'column.done': 'Erledigt',
   'column.count': '{count} Aufgaben',

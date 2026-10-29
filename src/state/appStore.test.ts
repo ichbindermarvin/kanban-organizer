@@ -24,10 +24,10 @@ async function setup() {
 }
 
 describe('app store with IndexedDB', () => {
-  it('creates a default board with backlog + four flow columns and WIP limit 3 for "In Arbeit"', async () => {
+  it('creates a default board with backlog, blocked + four flow columns and WIP limit 3 for "In Arbeit"', async () => {
     const { s } = await setup()
     expect(s().status).toBe('ready')
-    expect(s().boardColumns().map((c) => c.role)).toEqual(['backlog', 'inbox', 'planned', 'doing', 'done'])
+    expect(s().boardColumns().map((c) => c.role)).toEqual(['backlog', 'inbox', 'planned', 'blocked', 'doing', 'done'])
     expect(s().boardColumns().find((c) => c.role === 'doing')!.wipLimit).toBe(3)
   })
 
@@ -138,7 +138,7 @@ describe('app store with IndexedDB', () => {
     const { s, reloadStore, flush } = await setup()
     const work = s().createBoard('Arbeit')!
     expect(s().activeBoardId()).toBe(work.id)
-    expect(s().boardColumns().map((c) => c.role)).toEqual(['backlog', 'inbox', 'planned', 'doing', 'done'])
+    expect(s().boardColumns().map((c) => c.role)).toEqual(['backlog', 'inbox', 'planned', 'blocked', 'doing', 'done'])
     expect(s().createBoard('Verein')).toBeDefined()
     expect(s().createBoard('Zu viel')).toBeUndefined()
     expect(s().activeBoards()).toHaveLength(3)
@@ -184,6 +184,18 @@ describe('app store with IndexedDB', () => {
     expect((await reloadStore()).activeBoards()).toHaveLength(2)
   })
 
+  it('the blocked column is an open state, keeps its collapsed flag and can be renamed', async () => {
+    const { s, col, reloadStore, flush } = await setup()
+    const task = s().addTask('Wartet auf Rückmeldung', col('planned').id, { dueDate: '2020-01-01' })!
+    s().moveToColumn(task.id, col('blocked').id)
+    expect(s().tasks[0]!.completedAt).toBeUndefined()
+    s().updateColumn(col('blocked').id, { collapsed: true, title: 'Wartet' })
+    await flush()
+    const reloaded = await reloadStore()
+    expect(reloaded.columns.find((c) => c.role === 'blocked')).toMatchObject({ collapsed: true, title: 'Wartet' })
+    expect(reloaded.tasks[0]!.columnId).toBe(col('blocked').id)
+  })
+
   it('persists settings', async () => {
     const { s, reloadStore, flush } = await setup()
     s().updateSettings({ theme: 'dark', locale: 'en', colorLabels: { blue: 'Arbeit', green: 'Privat' } })
@@ -214,16 +226,16 @@ describe('app store with IndexedDB', () => {
     expect(await s().importSnapshot(broken)).toEqual({ ok: false })
     const stored = await repos.loadAll()
     expect(stored.tasks.map((t) => t.title)).toEqual(['Bleibt erhalten'])
-    expect(stored.columns).toHaveLength(5)
+    expect(stored.columns).toHaveLength(6)
   })
 
-  it('adds the backlog when importing a backup from before the backlog existed', async () => {
+  it('adds backlog and blocked when importing a backup from before they existed', async () => {
     const { s, flush } = await setup()
     await flush()
     const snapshot = s().exportSnapshot()
-    const old = { ...snapshot, columns: snapshot.columns.filter((c) => c.role !== 'backlog') }
+    const old = { ...snapshot, columns: snapshot.columns.filter((c) => c.role !== 'backlog' && c.role !== 'blocked') }
     expect(await s().importSnapshot(old)).toEqual({ ok: true })
-    expect(s().boardColumns().map((c) => c.role)).toEqual(['backlog', 'inbox', 'planned', 'doing', 'done'])
+    expect(s().boardColumns().map((c) => c.role)).toEqual(['backlog', 'inbox', 'planned', 'blocked', 'doing', 'done'])
   })
 
   it('rolls back the UI when a write fails', async () => {

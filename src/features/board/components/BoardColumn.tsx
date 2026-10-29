@@ -17,7 +17,7 @@ interface BoardColumnProps {
   tasks: Task[]
   totalCount: number
   dragDisabled: boolean
-  /** Only the backlog can be collapsed to give the active flow more room. */
+  /** Backlog (to a vertical strip) and "Blockiert" (to a horizontal bar) can be collapsed. */
   collapsed?: boolean
   onToggleCollapse?: () => void
 }
@@ -59,6 +59,9 @@ export const BoardColumn = memo(function BoardColumn({ column, tasks, totalCount
     />
   )
 
+  // The backlog collapses sideways, "Blockiert" (stacked below "Geplant") collapses downwards.
+  const horizontal = column.role === 'blocked'
+  const toggleIcon = horizontal ? (collapsed ? 'chevronUp' : 'chevronDown') : collapsed ? 'chevronRight' : 'chevronLeft'
   const toggle = onToggleCollapse && (
     <button
       type="button"
@@ -67,9 +70,27 @@ export const BoardColumn = memo(function BoardColumn({ column, tasks, totalCount
       aria-label={collapsed ? t('column.expand', { column: name }) : t('column.collapse', { column: name })}
       onClick={onToggleCollapse}
     >
-      <Icon name={collapsed ? 'chevronRight' : 'chevronLeft'} size={14} />
+      <Icon name={toggleIcon} size={14} />
     </button>
   )
+
+  if (collapsed && horizontal) {
+    return (
+      <section ref={setNodeRef} className={`column column--${column.role} column--bar${isOver ? ' column--over' : ''}`} aria-labelledby={headingId} data-column={column.role}>
+        <header className="column__header">
+          <h2 id={headingId} className="column__title">
+            {name}
+          </h2>
+          <span className="column__count" aria-label={t('column.count', { count: totalCount })}>
+            {totalCount}
+          </span>
+          <Menu label={`${t('column.menu')}: ${name}`} trigger={<Icon name="more" />} triggerClassName="icon-btn icon-btn--sm column__menu" entries={menuEntries} />
+          {toggle}
+        </header>
+        {renameDialog}
+      </section>
+    )
+  }
 
   if (collapsed) {
     return (

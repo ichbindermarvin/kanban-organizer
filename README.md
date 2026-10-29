@@ -6,7 +6,7 @@ Kein Jira-, Asana- oder Trello-Klon: wenige Funktionen, dafür schnelle Kernabl�
 - **Aufgaben in Sekunden erfassen**: `N` → Titel → `Enter`
 - **Heute-Ansicht**: Überfälliges, heute Fälliges und laufende Arbeit auf einen Blick
 - **Farbige Karten**: 8 Farben zur freien Markierung, direkt über das Kartenmenü oder im Drawer
-- **Kanban-Board**: Backlog ⇢ Inbox → Geplant → In Arbeit → Erledigt, mit sichtbaren Flow-Pfeilen, Drag-and-drop und Tastaturbedienung
+- **Kanban-Board**: Backlog ⇢ Inbox → Geplant (darunter optional Blockiert) → In Arbeit → Erledigt, mit sichtbaren Flow-Pfeilen, Drag-and-drop und Tastaturbedienung
 - **Wiederkehrende Aufgaben**: täglich, wöchentlich, monatlich oder benutzerdefiniert
 - **Lokal und privat**: alle Daten bleiben im Browser (IndexedDB), kein Konto, keine Cloud, kein Tracking
 - **Backup**: versionierter JSON-Export und geprüfter Import
@@ -125,7 +125,7 @@ e2e/              Playwright-Tests
 - **Speicherschutz:** Beim Start bittet die App den Browser um dauerhaften Speicher (`navigator.storage.persist()`). Edge und Chrome entscheiden das ohne Rückfrage. In Firefox geschieht es nur auf Knopfdruck in den Einstellungen, weil Firefox dafür einen Dialog zeigt. Als installierte PWA ist der Schutz am zuverlässigsten.
 - **Backup:** Einstellungen → „Daten exportieren“ speichert eine versionierte JSON-Datei (`schemaVersion`). Sobald einige Aufgaben existieren, erinnert die Sidebar, wenn das letzte Backup älter als 7 Tage ist (oder noch keines existiert).
 - **Import:** Die Datei wird geparst und vollständig validiert: Struktur, Schema-Version, doppelte IDs, Verweise auf Boards und Spalten, Wiederholungsregeln. Danach fragt die App nach. Vor dem Ersetzen wird automatisch ein Backup des aktuellen Stands heruntergeladen. Das Ersetzen selbst läuft in einer einzigen Transaktion: Schlägt es fehl, bleibt die Datenbank unverändert.
-- **Schema-Migrationen:** `src/db/migrations/index.ts` (IndexedDB) und `BACKUP_MIGRATIONS` in `src/features/settings/services/backup.ts` (Backup-Dateien). Versionen werden nur angehängt, nie verändert. Beispiel: Version 2 ergänzt bei bestehenden Datenbanken die Backlog-Spalte, ohne Aufgaben anzufassen. Auch ältere Backups ohne Backlog werden beim Import automatisch ergänzt.
+- **Schema-Migrationen:** `src/db/migrations/index.ts` (IndexedDB) und `BACKUP_MIGRATIONS` in `src/features/settings/services/backup.ts` (Backup-Dateien). Versionen werden nur angehängt, nie verändert. Beispiel: Version 2 ergänzt die Backlog-Spalte, Version 3 die Spalte „Blockiert“, jeweils ohne Aufgaben anzufassen. Auch ältere Backups ohne Backlog werden beim Import automatisch ergänzt.
 
 ## Wiederkehrende Aufgaben
 
@@ -157,6 +157,7 @@ Wird eine Instanz erledigt (Spalte „Erledigt“, Kreis-Button, `X` oder Status
 - **Backlog-Aufgaben in „Heute“:** Hat eine Backlog-Aufgabe eine Deadline, erscheint sie in „Heute“, aber leicht ausgegraut und nach den Aufgaben aus dem Arbeitsfluss.
 - **Farb-Bedeutungen:** In den Einstellungen kannst Du jeder Farbe eine eigene Bedeutung geben (z. B. Blau = Arbeit). Sie erscheint als Text auf der Karte, in der Farbauswahl und im Filter. So ist Farbe nie die einzige Information. Der Filter „Farbe“ kann mit allen anderen Filtern kombiniert werden, inklusive „Ohne Farbe“.
 - **Kartenfarben** sind rein visuell und frei verwendbar: farbiger Streifen links plus leichte Tönung, die im hellen und dunklen Design funktioniert. Duplikate und neue Instanzen wiederkehrender Aufgaben übernehmen die Farbe.
+- **„Blockiert“** teilt sich die Spalte mit „Geplant“: beide je halbe Höhe, „Blockiert“ darunter, mit etwas dunklerem Hintergrund. Angedeutete (gestrichelte) Pfeile führen von „Inbox“, „Geplant“ und „In Arbeit“ hinein, nicht von „Erledigt“. Die Spalte lässt sich pro Board zu einer schmalen Leiste einklappen, dann nutzt „Geplant“ fast die volle Höhe. Karten können auch auf die eingeklappte Leiste gezogen werden. Blockierte Aufgaben gelten als offen und erscheinen bei Fälligkeit in „Heute“. Die Spalte ist umbenennbar und wird bei bestehenden Boards per Migration (Version 3) ergänzt.
 - **Flow-Pfeile** zwischen den Spalten zeigen die Richtung des Arbeitsflusses. Sie sind rein dekorativ, für Screenreader ist der Fluss als Gruppenname des Boards hinterlegt („Arbeitsfluss: Backlog → Inbox → …“).
 
 - **Wiedereröffnete Aufgaben** (Kreis-Button bei einer erledigten Aufgabe) gehen zurück nach „Geplant“.

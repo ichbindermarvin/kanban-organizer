@@ -1,8 +1,11 @@
 import type { Board, Column, ColumnRole } from '@/features/tasks/models/schemas'
 import { newId } from '@/shared/utils/id'
 
-/** Flow order of the board. The backlog sits in front of the inbox. */
-export const DEFAULT_COLUMN_ROLES: ColumnRole[] = ['backlog', 'inbox', 'planned', 'doing', 'done']
+/**
+ * Flow order of the board. The backlog sits in front of the inbox; "blocked" shares the track of
+ * "planned" (shown below it) and can be collapsed.
+ */
+export const DEFAULT_COLUMN_ROLES: ColumnRole[] = ['backlog', 'inbox', 'planned', 'blocked', 'doing', 'done']
 /** Upper limit of boards. Keeps the tool personal and the navigation calm. */
 export const MAX_BOARDS = 3
 

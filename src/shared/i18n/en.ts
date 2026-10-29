@@ -40,6 +40,7 @@ export const en: Record<TranslationKey, string> = {
   'toast.boardDeleted': 'Board “{name}” deleted',
   'column.inbox': 'Inbox',
   'column.planned': 'Planned',
+  'column.blocked': 'Blocked',
   'column.doing': 'In progress',
   'column.done': 'Done',
   'column.count': '{count} tasks',

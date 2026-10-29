@@ -14,7 +14,7 @@ export const CARD_COLORS = ['red', 'orange', 'yellow', 'green', 'teal', 'blue', 
 export const cardColorSchema = z.enum(CARD_COLORS)
 export type CardColor = z.infer<typeof cardColorSchema>
 
-export const COLUMN_ROLES = ['backlog', 'inbox', 'planned', 'doing', 'done'] as const
+export const COLUMN_ROLES = ['backlog', 'inbox', 'planned', 'blocked', 'doing', 'done'] as const
 export const columnRoleSchema = z.enum(COLUMN_ROLES)
 export type ColumnRole = z.infer<typeof columnRoleSchema>
 
@@ -59,6 +59,8 @@ export const columnSchema = z.object({
   role: columnRoleSchema,
   position: z.number(),
   wipLimit: z.number().int().min(1).optional(),
+  /** Collapsed to a slim bar on the board (used by the optional "Blockiert" column). */
+  collapsed: z.boolean().optional(),
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
 })

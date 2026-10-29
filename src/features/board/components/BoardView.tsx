@@ -19,7 +19,7 @@ import {
   type UniqueIdentifier,
 } from '@dnd-kit/core'
 import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
-import type { Task } from '@/features/tasks/models/schemas'
+import type { Column, Task } from '@/features/tasks/models/schemas'
 import { columnTitle, useAppStore } from '@/state/appStore'
 import { filterTasks, isFilterActive, sortTasks, type SortMode } from '@/features/filters/services/filterTasks'
 import { tasksInColumn } from '@/features/tasks/services/taskQueries'
@@ -66,6 +66,7 @@ export function BoardView() {
   const [renaming, setRenaming] = useState(false)
   const backlogCollapsed = useAppStore((s) => s.settings.backlogCollapsed) ?? window.innerWidth < 1400
   const updateSettings = useAppStore((s) => s.updateSettings)
+  const updateColumn = useAppStore((s) => s.updateColumn)
 
   const columns = useMemo(() => allColumns.filter((c) => c.boardId === boardId).sort((a, b) => a.position - b.position), [allColumns, boardId])
   const tasksById = useMemo(() => new Map(tasks.map((task) => [task.id, task])), [tasks])
@@ -85,7 +86,22 @@ export function BoardView() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const items = dragItems ?? baseItems
   const dragDisabled = sortMode !== 'manual'
-  const collapsedColumnId = backlogCollapsed ? columns.find((c) => c.role === 'backlog')?.id : undefined
+  // Collapsed columns show no cards; dropping on them appends the task.
+  const collapsedIds = useMemo(() => {
+    const ids = new Set<string>()
+    const backlog = columns.find((c) => c.role === 'backlog')
+    if (backlog && backlogCollapsed) ids.add(backlog.id)
+    for (const column of columns) if (column.role === 'blocked' && column.collapsed) ids.add(column.id)
+    return ids
+  }, [columns, backlogCollapsed])
+  /** Board tracks: "Blockiert" shares the track of "Geplant" and is rendered below it. */
+  const tracks = useMemo(() => {
+    const blocked = columns.find((c) => c.role === 'blocked')
+    const planned = columns.find((c) => c.role === 'planned')
+    return columns
+      .filter((c) => !(c.role === 'blocked' && planned))
+      .map((c) => (c.role === 'planned' && blocked ? [c, blocked] : [c]))
+  }, [columns])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -111,7 +127,7 @@ export function BoardView() {
     const from = findContainer(active.id, dragItems)
     const to = findContainer(over.id, dragItems)
     // A collapsed column shows no cards; dropping on it appends (handled in onDragEnd).
-    if (!from || !to || from === to || to === collapsedColumnId) return
+    if (!from || !to || from === to || collapsedIds.has(to)) return
     setDragItems((prev) => {
       if (!prev) return prev
       const source = prev[from]!.filter((id) => id !== active.id)
@@ -130,8 +146,11 @@ export function BoardView() {
     setDragItems(null)
     setActiveId(null)
     if (!current || !over) return
-    if (collapsedColumnId && String(over.id) === COLUMN_PREFIX + collapsedColumnId) {
-      moveTask(String(active.id), collapsedColumnId, tasksInColumn(tasks, collapsedColumnId).length)
+    const overId = String(over.id)
+    if (overId.startsWith(COLUMN_PREFIX) && collapsedIds.has(overId.slice(COLUMN_PREFIX.length))) {
+      const target = overId.slice(COLUMN_PREFIX.length)
+      const task = tasksById.get(String(active.id))
+      if (task && task.columnId !== target) moveTask(task.id, target, tasksInColumn(tasks, target).length)
       return
     }
     const columnId = findContainer(active.id, current)
@@ -166,13 +185,14 @@ export function BoardView() {
   }
 
   const activeTask = activeId ? tasksById.get(activeId) : undefined
-  const flowLabel = columns.map((column) => columnTitle(column, locale)).join(' → ')
+  const flowLabel = tracks.map((track) => track.map((column) => columnTitle(column, locale)).join(' / ')).join(' → ')
   // Grid tracks: column, arrow, column, … The backlog is set apart by a wider, dashed connector.
-  const template = columns
-    .map((column, index) => {
-      const previous = columns[index - 1]
+  const template = tracks
+    .map((track, index) => {
+      const previous = tracks[index - 1]?.[0]
       const arrow = previous ? (previous.role === 'backlog' ? 'var(--flow-gap-detached) ' : 'var(--flow-gap) ') : ''
-      return arrow + (column.id === collapsedColumnId ? 'var(--column-collapsed-w)' : 'minmax(var(--column-min-w), 1fr)')
+      const collapsedStrip = track.length === 1 && collapsedIds.has(track[0]!.id) && track[0]!.role === 'backlog'
+      return arrow + (collapsedStrip ? 'var(--column-collapsed-w)' : 'minmax(var(--column-min-w), 1fr)')
     })
     .join(' ')
   const filtered = isFilterActive(filter)
@@ -217,19 +237,52 @@ export function BoardView() {
         accessibility={{ announcements, screenReaderInstructions: { draggable: t('board.dragInstructions') } }}
       >
         <div className="board" style={{ gridTemplateColumns: template }} role="group" aria-label={t('board.flow', { flow: flowLabel })}>
-          {columns.map((column, index) => {
-            const previous = columns[index - 1]
+          {tracks.map((track, index) => {
+            const previous = tracks[index - 1]?.[0]
+            const renderColumn = (column: Column) => (
+              <BoardColumn
+                key={column.id}
+                column={column}
+                tasks={(items[column.id] ?? []).map((id) => tasksById.get(id)).filter((task): task is Task => !!task)}
+                totalCount={totals[column.id] ?? 0}
+                dragDisabled={dragDisabled}
+                collapsed={collapsedIds.has(column.id)}
+                onToggleCollapse={
+                  column.role === 'backlog'
+                    ? () => updateSettings({ backlogCollapsed: !backlogCollapsed })
+                    : column.role === 'blocked'
+                      ? () => updateColumn(column.id, { collapsed: !column.collapsed })
+                      : undefined
+                }
+              />
+            )
             return (
-              <Fragment key={column.id}>
-                {previous && <FlowArrow detached={previous.role === 'backlog'} />}
-                <BoardColumn
-                  column={column}
-                  tasks={(items[column.id] ?? []).map((id) => tasksById.get(id)).filter((task): task is Task => !!task)}
-                  totalCount={totals[column.id] ?? 0}
-                  dragDisabled={dragDisabled}
-                  collapsed={column.id === collapsedColumnId}
-                  onToggleCollapse={column.role === 'backlog' ? () => updateSettings({ backlogCollapsed: !backlogCollapsed }) : undefined}
-                />
+              <Fragment key={track[0]!.id}>
+                {previous && (
+                  <FlowArrow
+                    detached={previous.role === 'backlog'}
+                    branch={
+                      track.length > 1
+                        ? { collapsed: track.some((c) => collapsedIds.has(c.id)), toward: 'next' }
+                        : tracks[index - 1]!.length > 1
+                          ? { collapsed: tracks[index - 1]!.some((c) => collapsedIds.has(c.id)), toward: 'previous' }
+                          : undefined
+                    }
+                  />
+                )}
+                {track.length > 1 ? (
+                  <div className={`column-stack${track.some((c) => collapsedIds.has(c.id)) ? ' column-stack--collapsed' : ''}`}>
+                    {renderColumn(track[0]!)}
+                    {/* Hinted flow from "Geplant" down into "Blockiert". */}
+                    <div className="flow-arrow-down" aria-hidden="true">
+                      <span className="flow-arrow-down__line" />
+                      <Icon name="chevronDown" size={12} />
+                    </div>
+                    {track.slice(1).map(renderColumn)}
+                  </div>
+                ) : (
+                  renderColumn(track[0]!)
+                )}
               </Fragment>
             )
           })}
@@ -253,12 +306,26 @@ export function BoardView() {
   )
 }
 
-/** Decorative connector that visualizes the flow between two columns. */
-function FlowArrow({ detached }: { detached: boolean }) {
-  return (
-    <div className={`flow-arrow${detached ? ' flow-arrow--detached' : ''}`} aria-hidden="true">
+/**
+ * Decorative connector between two tracks. When the next track is the "Geplant/Blockiert" stack,
+ * a second, hinted (dashed) arrow leads into "Blockiert"; its cell mirrors the stack's layout so the
+ * arrow lines up with the "Blockiert" header in both expanded and collapsed state.
+ */
+function FlowArrow({ detached, branch }: { detached: boolean; branch?: { collapsed: boolean; toward: 'next' | 'previous' } }) {
+  // toward 'next': the stack is on the right (Inbox → Blockiert). 'previous': the stack is on the left (In Arbeit → Blockiert).
+  const arrow = (hinted: boolean) => (
+    <div
+      className={`flow-arrow${detached ? ' flow-arrow--detached' : ''}${hinted ? ' flow-arrow--hinted' : ''}${hinted && branch?.toward === 'previous' ? ' flow-arrow--back' : ''}`}
+    >
       <span className="flow-arrow__line" />
       <Icon name="chevronRight" size={14} />
+    </div>
+  )
+  if (!branch) return <div aria-hidden="true">{arrow(false)}</div>
+  return (
+    <div className={`flow-arrow-cell${branch.collapsed ? ' flow-arrow-cell--collapsed' : ''}`} aria-hidden="true">
+      <div className="flow-arrow-cell__top">{arrow(false)}</div>
+      <div className="flow-arrow-cell__bottom">{arrow(true)}</div>
     </div>
   )
 }

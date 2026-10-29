@@ -5,10 +5,10 @@ import { missingDefaultColumns } from '@/features/board/services/defaults'
 import { makeBoard, makeTask, NOW } from '@/tests/factories'
 
 describe('IndexedDB migrations', () => {
-  it('v1 → v2 adds the backlog in front of the inbox and keeps all existing data', async () => {
+  it('v1 → current adds backlog (before the inbox) and blocked (after planned) and keeps all existing data', async () => {
     const name = 'migration-v1'
     const { board, columns, inbox } = makeBoard()
-    const v1Columns = columns.filter((c) => c.role !== 'backlog').map((c, index) => ({ ...c, position: index }))
+    const v1Columns = columns.filter((c) => c.role !== 'backlog' && c.role !== 'blocked').map((c, index) => ({ ...c, position: index }))
     const task = makeTask(inbox, { title: 'Bleibt erhalten' })
 
     // Create a database exactly as version 1 of the app did.
@@ -23,9 +23,9 @@ describe('IndexedDB migrations', () => {
     await db.open()
     expect(db.verno).toBe(CURRENT_DB_VERSION)
     const migrated = (await db.columns.toArray()).sort((a, b) => a.position - b.position)
-    expect(migrated.map((c) => c.role)).toEqual(['backlog', 'inbox', 'planned', 'doing', 'done'])
+    expect(migrated.map((c) => c.role)).toEqual(['backlog', 'inbox', 'planned', 'blocked', 'doing', 'done'])
     expect(await db.tasks.get(task.id)).toEqual(task)
-    expect(migrated.filter((c) => c.role !== 'backlog')).toEqual(expect.arrayContaining(v1Columns))
+    expect(migrated.filter((c) => c.role !== 'backlog' && c.role !== 'blocked')).toEqual(expect.arrayContaining(v1Columns))
     db.close()
   })
 })

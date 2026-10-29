@@ -36,6 +36,17 @@ export const DB_MIGRATIONS: DbMigration[] = [
       if (added.length) await tx.table('columns').bulkAdd(added)
     },
   },
+  {
+    // v3: adds the optional "Blockiert" column (below "Geplant") to every existing board.
+    version: 3,
+    stores: {},
+    upgrade: async (tx) => {
+      const boards = (await tx.table('boards').toArray()) as Board[]
+      const columns = (await tx.table('columns').toArray()) as Column[]
+      const added = missingDefaultColumns(boards, columns, new Date().toISOString())
+      if (added.length) await tx.table('columns').bulkAdd(added)
+    },
+  },
 ]
 
 export const CURRENT_DB_VERSION = DB_MIGRATIONS[DB_MIGRATIONS.length - 1]!.version

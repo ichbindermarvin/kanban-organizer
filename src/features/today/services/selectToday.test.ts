@@ -30,6 +30,13 @@ describe('selectToday', () => {
     expect(selectToday([fromBacklog, fromFlow], columns, TODAY).dueToday.map((t) => t.id)).toEqual([fromFlow.id, fromBacklog.id])
   })
 
+  it('includes overdue blocked tasks (blocked is still open)', () => {
+    const { columns, board } = makeBoard()
+    const blocked = columns.find((c) => c.role === 'blocked' && c.boardId === board.id)!
+    const task = makeTask(blocked, { dueDate: '2026-08-01' })
+    expect(selectToday([task], columns, TODAY).overdue.map((t) => t.id)).toEqual([task.id])
+  })
+
   it('sorts tasks due today by priority', () => {
     const { columns, planned } = makeBoard()
     const low = makeTask(planned, { dueDate: TODAY, priority: 'low' })
