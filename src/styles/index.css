@@ -1991,3 +1991,12 @@ p {
 .flow-arrow--back {
   transform: scaleX(-1);
 }
+
+/* "Wartet auf" line on blocked cards and rows */
+.waiting {
+  display: block;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-2);
+  overflow-wrap: break-word;
+}

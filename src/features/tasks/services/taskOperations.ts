@@ -102,6 +102,7 @@ export function duplicateTask(task: Task, columns: Column[], tasks: Task[], now:
     columnId: targetColumn.id,
     title: copySuffix ? `${task.title} ${copySuffix}` : task.title,
     ...(task.description ? { description: task.description } : {}),
+    ...(!reuse && task.waitingFor ? { waitingFor: task.waitingFor } : {}),
     position: 0,
     priority: task.priority,
     ...(task.color ? { color: task.color } : {}),

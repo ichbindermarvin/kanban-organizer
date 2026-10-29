@@ -32,6 +32,7 @@ export function TaskRow({ task, showColumn = true, extra, dimBacklog }: TaskRowP
       <CompleteButton task={task} done={done} />
       <button type="button" className="row__main" onClick={() => openDrawer(task.id)}>
         <span className="row__title">{title}</span>
+        {column?.role === 'blocked' && task.waitingFor && <span className="waiting">{t('task.waitingForLine', { text: task.waitingFor })}</span>}
         <TaskMeta
           task={task}
           completed={done}

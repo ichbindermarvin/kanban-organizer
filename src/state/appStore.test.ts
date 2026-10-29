@@ -29,6 +29,7 @@ describe('app store with IndexedDB', () => {
     expect(s().status).toBe('ready')
     expect(s().boardColumns().map((c) => c.role)).toEqual(['backlog', 'inbox', 'planned', 'blocked', 'doing', 'done'])
     expect(s().boardColumns().find((c) => c.role === 'doing')!.wipLimit).toBe(3)
+    expect(s().boardColumns().find((c) => c.role === 'blocked')!.collapsed).toBe(true)
   })
 
   it('task CRUD persists across reloads', async () => {

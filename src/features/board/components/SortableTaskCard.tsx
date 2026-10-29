@@ -4,7 +4,7 @@ import { CSS } from '@dnd-kit/utilities'
 import type { Task } from '@/features/tasks/models/schemas'
 import { TaskCard } from '@/features/tasks/components/TaskCard'
 
-export function SortableTaskCard({ task, done, disabled }: { task: Task; done: boolean; disabled: boolean }) {
+export function SortableTaskCard({ task, done, blocked, disabled }: { task: Task; done: boolean; blocked?: boolean; disabled: boolean }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
     disabled,
@@ -13,6 +13,7 @@ export function SortableTaskCard({ task, done, disabled }: { task: Task; done: b
     <TaskCard
       task={task}
       done={done}
+      blocked={blocked}
       drag={{
         nodeRef: setNodeRef,
         handleRef: setActivatorNodeRef,

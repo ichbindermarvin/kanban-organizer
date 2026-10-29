@@ -8,7 +8,7 @@ export function normalize(value: string): string {
 export type ColorSearchTerms = Partial<Record<CardColor, string>>
 
 /**
- * Every word of the query must appear in the title, the description, a tag or the card color's
+ * Every word of the query must appear in the title, the description, "waiting for", a tag or the card color's
  * name/meaning (case- and accent-insensitive).
  */
 export function searchTasks(tasks: Task[], query: string, colorTerms: ColorSearchTerms = {}): Task[] {
@@ -17,7 +17,7 @@ export function searchTasks(tasks: Task[], query: string, colorTerms: ColorSearc
   return tasks.filter((task) => {
     if (task.deletedAt) return false
     const color = task.color ? (colorTerms[task.color] ?? '') : ''
-    const haystack = normalize([task.title, task.description ?? '', ...task.tags.map((t) => `#${t} ${t}`), color].join(' \n '))
+    const haystack = normalize([task.title, task.description ?? '', task.waitingFor ?? '', ...task.tags.map((t) => `#${t} ${t}`), color].join(' \n '))
     return terms.every((term) => haystack.includes(term))
   })
 }

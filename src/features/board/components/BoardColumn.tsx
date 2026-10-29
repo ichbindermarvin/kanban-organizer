@@ -131,7 +131,7 @@ export const BoardColumn = memo(function BoardColumn({ column, tasks, totalCount
         <div ref={setNodeRef} className="column__list" role="list" aria-labelledby={headingId}>
           {tasks.map((task) => (
             <div role="listitem" key={task.id}>
-              <SortableTaskCard task={task} done={done} disabled={dragDisabled} />
+              <SortableTaskCard task={task} done={done} blocked={column.role === 'blocked'} disabled={dragDisabled} />
             </div>
           ))}
           {tasks.length === 0 && done && <p className="column__empty">{t('column.empty')}</p>}

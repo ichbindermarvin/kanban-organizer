@@ -72,6 +72,8 @@ export const taskSchema = z.object({
   columnId: z.string().min(1),
   title: z.string(),
   description: z.string().optional(),
+  /** What a blocked task is waiting for ("Rückmeldung von Anna"). Shown while the task is in "Blockiert". */
+  waitingFor: z.string().max(200).optional(),
   position: z.number(),
   priority: prioritySchema,
   color: cardColorSchema.optional(),

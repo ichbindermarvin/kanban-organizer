@@ -288,7 +288,14 @@ export function BoardView() {
           })}
         </div>
         <DragOverlay dropAnimation={{ duration: 160, easing: 'ease-out' }}>
-          {activeTask ? <TaskCard task={activeTask} done={columns.find((c) => c.id === activeTask.columnId)?.role === 'done'} overlay /> : null}
+          {activeTask ? (
+            <TaskCard
+              task={activeTask}
+              done={columns.find((c) => c.id === activeTask.columnId)?.role === 'done'}
+              blocked={columns.find((c) => c.id === activeTask.columnId)?.role === 'blocked'}
+              overlay
+            />
+          ) : null}
         </DragOverlay>
       </DndContext>
       {filtered && Object.values(visible).every((list) => list.length === 0) && <p className="hint">{t('filter.resultEmpty')}</p>}

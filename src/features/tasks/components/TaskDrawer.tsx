@@ -31,10 +31,12 @@ function TaskDrawer({ task }: { task: Task }) {
   const { updateTask, moveToColumn, closeDrawer, archiveTask, restoreTask, deleteTask, duplicateTask, openDrawer } = useAppStore.getState()
   const ref = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLTextAreaElement>(null)
-  const ids = { heading: useId(), tags: useId(), subtasks: useId(), recurrence: useId(), color: useId(), status: useId(), due: useId(), desc: useId() }
+  const ids = { heading: useId(), tags: useId(), subtasks: useId(), recurrence: useId(), color: useId(), status: useId(), waiting: useId(), due: useId(), desc: useId() }
 
   const [title, setTitle] = useState(task.title)
   const [description, setDescription] = useState(task.description ?? '')
+  const [waitingFor, setWaitingFor] = useState(task.waitingFor ?? '')
+  const flushWaitingFor = useAutosave(waitingFor, task.waitingFor ?? '', (value) => updateTask(task.id, { waitingFor: value.trim() || undefined }))
   const flushTitle = useAutosave(title, task.title, (value) => value.trim() && updateTask(task.id, { title: value.trim() }))
   const flushDescription = useAutosave(description, task.description ?? '', (value) => updateTask(task.id, { description: value || undefined }))
 
@@ -108,6 +110,27 @@ function TaskDrawer({ task }: { task: Task }) {
                 </select>
               </dd>
             </div>
+
+            {/* Only relevant (and visible) while the task is blocked, or if a value is still set. */}
+            {(current?.role === 'blocked' || task.waitingFor) && (
+              <div className="field">
+                <dt>
+                  <label htmlFor={ids.waiting}>{t('task.waitingFor')}</label>
+                </dt>
+                <dd>
+                  <input
+                    id={ids.waiting}
+                    className="input input--small input--full"
+                    value={waitingFor}
+                    maxLength={200}
+                    placeholder={t('task.waitingForPlaceholder')}
+                    onChange={(e) => setWaitingFor(e.target.value)}
+                    onBlur={flushWaitingFor}
+                    onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+                  />
+                </dd>
+              </div>
+            )}
 
             <div className="field">
               <dt id="priority-label">{t('priority.label')}</dt>

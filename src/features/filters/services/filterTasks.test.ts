@@ -74,6 +74,10 @@ describe('searchTasks', () => {
     expect(searchTasks([blue, a], 'grün', terms)).toEqual([])
     expect(searchTasks([blue, a], 'arbeit')).toEqual([])
   })
+  it('finds by "waiting for"', () => {
+    const blocked = makeTask(inbox, { title: 'Vertrag', waitingFor: 'Unterschrift von Anna' })
+    expect(searchTasks([blocked, a], 'anna').map((t) => t.id)).toEqual([blocked.id])
+  })
   it('requires all words', () => expect(searchTasks(all, 'newsletter steuer')).toEqual([]))
   it('returns nothing for an empty query', () => expect(searchTasks(all, '  ')).toEqual([]))
 })

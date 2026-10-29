@@ -19,6 +19,8 @@ function buildColumn(boardId: string, role: ColumnRole, position: number, now: s
     role,
     position,
     ...(DEFAULT_WIP_LIMITS[role] ? { wipLimit: DEFAULT_WIP_LIMITS[role] } : {}),
+    // "Blockiert" is optional and starts collapsed.
+    ...(role === 'blocked' ? { collapsed: true } : {}),
     createdAt: now,
     updatedAt: now,
   }

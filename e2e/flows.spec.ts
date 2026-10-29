@@ -363,6 +363,8 @@ test('Today shows tasks of all boards with the board name', async ({ page }) => 
 
 test('"Blockiert" sits below "Geplant", can be collapsed, renamed and receives drops when collapsed', async ({ page }) => {
   await openApp(page, '#/board')
+  // Optional column: collapsed by default.
+  await page.getByRole('button', { name: 'Blockiert ausklappen' }).click()
   const planned = column(page, 'Geplant')
   const blocked = column(page, 'Blockiert')
   const plannedOpen = (await planned.boundingBox())!
@@ -393,4 +395,29 @@ test('"Blockiert" sits below "Geplant", can be collapsed, renamed and receives d
   await page.keyboard.press('Enter')
   await page.getByRole('button', { name: 'Wartet ausklappen' }).click()
   await expect(column(page, 'Wartet').locator('.card__title')).toHaveText(['Wartet auf Freigabe', 'Zweiter Blocker'])
+})
+
+test('"Wartet auf" is shown for blocked tasks only', async ({ page }) => {
+  await openApp(page, '#/board')
+  await quickCapture(page, 'Vertrag unterschreiben')
+  await card(column(page, 'Inbox'), 'Vertrag unterschreiben').locator('.card__main').click()
+  const drawer = page.getByRole('dialog', { name: 'Aufgabendetails' })
+  await expect(drawer.getByLabel('Wartet auf')).toHaveCount(0)
+  await drawer.getByLabel('Status').selectOption({ label: 'Blockiert' })
+  await drawer.getByLabel('Wartet auf').fill('Unterschrift von Anna')
+  await page.keyboard.press('Escape')
+
+  await page.getByRole('button', { name: 'Blockiert ausklappen' }).click()
+  await expect(card(column(page, 'Blockiert'), 'Vertrag unterschreiben')).toContainText('Wartet auf: Unterschrift von Anna')
+  await page.reload()
+  await expect(card(column(page, 'Blockiert'), 'Vertrag unterschreiben')).toContainText('Wartet auf: Unterschrift von Anna')
+
+  // Found by search; hidden again once the task is no longer blocked.
+  await page.keyboard.press('/')
+  await page.keyboard.type('anna')
+  await expect(page.locator('.row', { hasText: 'Vertrag unterschreiben' })).toContainText('Wartet auf: Unterschrift von Anna')
+  await page.keyboard.press('Escape')
+  await card(column(page, 'Blockiert'), 'Vertrag unterschreiben').getByRole('button', { name: /Aktionen für/ }).click()
+  await page.getByRole('menuitem', { name: 'Verschieben nach … In Arbeit' }).click()
+  await expect(card(column(page, 'In Arbeit'), 'Vertrag unterschreiben')).not.toContainText('Wartet auf')
 })

@@ -20,11 +20,13 @@ export interface DragBindings {
 interface TaskCardProps {
   task: Task
   done: boolean
+  /** Shows the "waiting for" line (only for tasks in "Blockiert"). */
+  blocked?: boolean
   drag?: DragBindings
   overlay?: boolean
 }
 
-export const TaskCard = memo(function TaskCard({ task, done, drag, overlay }: TaskCardProps) {
+export const TaskCard = memo(function TaskCard({ task, done, blocked, drag, overlay }: TaskCardProps) {
   const t = useT()
   const openDrawer = useAppStore((s) => s.openDrawer)
   const selectTask = useAppStore((s) => s.selectTask)
@@ -43,6 +45,7 @@ export const TaskCard = memo(function TaskCard({ task, done, drag, overlay }: Ta
       <CompleteButton task={task} done={done} />
       <button type="button" className="card__main" onClick={() => openDrawer(task.id)}>
         <span className="card__title">{title}</span>
+        {blocked && task.waitingFor && <span className="waiting">{t('task.waitingForLine', { text: task.waitingFor })}</span>}
         <TaskMeta task={task} completed={done} />
       </button>
       <div className="card__actions">
