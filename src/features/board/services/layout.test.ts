@@ -163,6 +163,15 @@ describe('areas', () => {
   })
 })
 
+describe('robustness', () => {
+  it('shows columns of an unknown area in the first area instead of hiding them', () => {
+    const { board, columns, byRole } = setup()
+    const orphan = { ...byRole('backlog'), areaId: 'missing-area' }
+    const next = columns.map((c) => (c.id === orphan.id ? orphan : c))
+    expect(leafColumnsInOrder(board, next).map((c) => c.id)).toContain(orphan.id)
+  })
+})
+
 describe('normalizeLegacyBoard', () => {
   it('gives an old board one area and stacks Blockiert below Geplant', () => {
     const { board, columns } = setup()

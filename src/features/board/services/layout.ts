@@ -67,8 +67,11 @@ export function buildLayout(board: Board, allColumns: Column[]): LayoutRow[] {
   for (const list of childrenOf.values()) list.sort((a, b) => a.position - b.position)
 
   const topLevel = columns.filter((c) => !c.parentId)
+  // Columns whose area is unknown (e.g. an interrupted save) are shown in the first area instead of vanishing.
+  const areaIds = new Set(areas.map((a) => a.id))
+  const areaOf = (c: Column) => (c.areaId && areaIds.has(c.areaId) ? c.areaId : fallbackAreaId)
   const areaLayouts = areas.map<AreaLayout>((area) => {
-    const own = topLevel.filter((c) => (c.areaId ?? fallbackAreaId) === area.id)
+    const own = topLevel.filter((c) => areaOf(c) === area.id)
     const trackNumbers = [...new Set(own.map((c) => c.track ?? c.position))].sort((a, b) => a - b)
     return {
       area,

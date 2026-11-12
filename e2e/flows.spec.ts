@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
-import { addDays, card, column, dragCardTo, goToBoard, nextMondayIso, openApp, quickCapture } from './helpers'
+import { addDays, card, column, dragCardTo, goToBoard, nextMondayIso, openApp, quickCapture, reloadSaved } from './helpers'
 
 test('Flow 1 – Quick Capture with N, persists after reload', async ({ page }) => {
   await openApp(page)
@@ -8,7 +8,7 @@ test('Flow 1 – Quick Capture with N, persists after reload', async ({ page }) 
   await quickCapture(page, 'Newsletter vorbereiten')
   await goToBoard(page)
   await expect(card(column(page, 'Inbox'), 'Newsletter vorbereiten')).toBeVisible()
-  await page.reload()
+  await reloadSaved(page)
   await expect(card(column(page, 'Inbox'), 'Newsletter vorbereiten')).toBeVisible()
 })
 
@@ -24,7 +24,7 @@ test('Flow 2 – Kanban drag and drop survives reload', async ({ page }) => {
   await dragCardTo(page, card(column(page, 'Geplant'), 'Landingpage prüfen'), column(page, 'In Arbeit'))
   await expect(card(column(page, 'In Arbeit'), 'Landingpage prüfen')).toBeVisible()
 
-  await page.reload()
+  await reloadSaved(page)
   await expect(card(column(page, 'In Arbeit'), 'Landingpage prüfen')).toBeVisible()
   await expect(card(column(page, 'Inbox'), 'Landingpage prüfen')).toHaveCount(0)
 })
@@ -43,7 +43,7 @@ test('Flow 2b – reorder within a column by drag and drop', async ({ page }) =>
   await page.mouse.move(first!.x + 60, first!.y + 2, { steps: 12 })
   await page.mouse.up()
   await expect(inbox.locator('.card__title')).toHaveText(['Zweite', 'Erste'])
-  await page.reload()
+  await reloadSaved(page)
   await expect(column(page, 'Inbox').locator('.card__title')).toHaveText(['Zweite', 'Erste'])
 })
 
@@ -108,7 +108,7 @@ test('Flow 4 – recurring task creates the next instance when completed', async
   const [, mm, dd] = nextMonday.split('-')
   await expect(next).toContainText(`${dd}.${mm}.`)
 
-  await page.reload()
+  await reloadSaved(page)
   await expect(card(column(page, 'Geplant'), 'Wochenplanung')).toBeVisible()
   await expect(card(column(page, 'Erledigt'), 'Wochenplanung')).toBeVisible()
 })
@@ -130,7 +130,7 @@ test('Flow 5 – details are saved in the drawer', async ({ page }) => {
   await drawer.getByRole('button', { name: 'Schließen' }).click()
   await expect(drawer).toBeHidden()
 
-  await page.reload()
+  await reloadSaved(page)
   const reloadedCard = card(column(page, 'Inbox'), 'Website relaunch')
   await expect(reloadedCard).toContainText('Hoch')
   await expect(reloadedCard).toContainText('0/3')
@@ -180,7 +180,7 @@ test('Flow 6 – export and import a backup', async ({ page }) => {
   await expect(card(inbox, 'Aufgabe A')).toBeVisible()
   await expect(card(inbox, 'Aufgabe B')).toBeVisible()
   await expect(card(inbox, 'Aufgabe C')).toHaveCount(0)
-  await page.reload()
+  await reloadSaved(page)
   await expect(card(column(page, 'Inbox'), 'Aufgabe A')).toBeVisible()
 })
 
@@ -237,7 +237,7 @@ test('backlog sits in front of the inbox, accepts tasks and can be collapsed', a
 
   await page.getByRole('button', { name: 'Backlog einklappen' }).click()
   await expect(card(page, 'Irgendwann')).toHaveCount(0)
-  await page.reload()
+  await reloadSaved(page)
   const expand = page.getByRole('button', { name: 'Backlog ausklappen' })
   await expect(expand).toHaveAttribute('aria-expanded', 'false')
 
@@ -263,7 +263,7 @@ test('cards can be colored from the menu and the drawer; backlog tasks are dimme
   await expect(drawer.getByRole('radio', { name: 'Grün' })).toHaveAttribute('aria-checked', 'true')
   await drawer.getByRole('radio', { name: 'Lila' }).click()
   await page.keyboard.press('Escape')
-  await page.reload()
+  await reloadSaved(page)
   await expect(target()).toHaveClass(/color-purple/)
 
   // Backlog task with a deadline today: shown in Today, greyed out and after the flow tasks.
@@ -293,7 +293,7 @@ test('colors get a user-defined meaning and can be filtered', async ({ page }) =
   await page.getByRole('checkbox', { name: 'Ohne Farbe' }).check()
   await expect(column(page, 'Inbox').locator('.card__title')).toHaveText(['Angebot schreiben', 'Fahrrad reparieren'])
 
-  await page.reload()
+  await reloadSaved(page)
   await expect(card(column(page, 'Inbox'), 'Angebot schreiben')).toContainText('Arbeit')
 
   // The search also finds tasks by the color's meaning.
@@ -335,7 +335,7 @@ test('up to three boards; boards and columns can be renamed', async ({ page }) =
   await page.keyboard.press('Enter')
   await expect(card(column(page, 'Ideen'), 'Training planen')).toBeVisible()
 
-  await page.reload()
+  await reloadSaved(page)
   await expect(page.getByRole('heading', { level: 1, name: 'Handball' })).toBeVisible()
   await expect(column(page, 'Ideen')).toBeVisible()
   await boards.getByRole('link', { name: 'Persönlich' }).click()
@@ -383,7 +383,7 @@ test('"Blockiert" sits below "Geplant", can be collapsed, renamed and receives d
   const plannedFull = (await planned.boundingBox())!
   expect(plannedFull.height).toBeGreaterThan(plannedOpen.height * 1.7)
 
-  await page.reload()
+  await reloadSaved(page)
   await expect(page.getByRole('button', { name: 'Blockiert ausklappen' })).toHaveAttribute('aria-expanded', 'false')
   await quickCapture(page, 'Zweiter Blocker')
   await dragCardTo(page, card(column(page, 'Inbox'), 'Zweiter Blocker'), column(page, 'Blockiert'))
@@ -409,7 +409,7 @@ test('"Wartet auf" is shown for blocked tasks only', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Blockiert ausklappen' }).click()
   await expect(card(column(page, 'Blockiert'), 'Vertrag unterschreiben')).toContainText('Wartet auf: Unterschrift von Anna')
-  await page.reload()
+  await reloadSaved(page)
   await expect(card(column(page, 'Blockiert'), 'Vertrag unterschreiben')).toContainText('Wartet auf: Unterschrift von Anna')
 
   // Found by search; hidden again once the task is no longer blocked.
@@ -429,7 +429,7 @@ test('"Erledigt" can be collapsed; completed tasks still land there', async ({ p
   await card(column(page, 'Inbox'), 'Fertig machen').getByRole('button', { name: '„Fertig machen“ als erledigt markieren' }).click()
   await expect(card(page, 'Fertig machen')).toHaveCount(0)
   await expect(column(page, 'Erledigt')).toContainText('1')
-  await page.reload()
+  await reloadSaved(page)
   await page.getByRole('button', { name: 'Erledigt ausklappen' }).click()
   await expect(card(column(page, 'Erledigt'), 'Fertig machen')).toBeVisible()
 })
@@ -490,7 +490,7 @@ test('flexible board: add, stack, split, delete columns and areas – persisted'
   await columnMenu('Backlog', 'In neuen Bereich verschieben')
   await expect(page.locator('section.area[aria-label="Backlog"]').locator('section.column h2')).toHaveText(['Backlog'])
 
-  await page.reload()
+  await reloadSaved(page)
   await expect(page.locator('section.area[aria-label="Daily Business"]').locator('section.column h2')).toHaveText(['Geplant', 'In Arbeit', 'Erledigt'])
   await expect(page.locator('section.area[aria-label="Backlog"]')).toBeVisible()
   await expect(page.locator('section.column--group section.column--sub h2')).toHaveText(['In Arbeit', 'Fertig'])
@@ -522,7 +522,7 @@ test('sub-column names of a split column can be edited in place', async ({ page 
   await page.keyboard.type('xyz')
   await page.keyboard.press('Escape')
 
-  await page.reload()
+  await reloadSaved(page)
   await expect(page.locator('section.column--group section.column--sub h2')).toHaveText(['i.A.', 'done'])
   await expect(page.locator('section.column--group > header h2')).toHaveText('In Arbeit')
 })

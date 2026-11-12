@@ -46,4 +46,7 @@ function requestPersistentStorage() {
     .catch(() => undefined)
 }
 
+// Lets end-to-end tests wait until all changes are written before reloading the page.
+;(window as unknown as { __kanbanWhenSaved?: () => Promise<void> }).__kanbanWhenSaved = () => useAppStore.getState().whenSaved()
+
 void start()

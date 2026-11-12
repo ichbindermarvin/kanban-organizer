@@ -61,6 +61,8 @@ export interface AppState {
   helpOpen: boolean
 
   init(repos: Repositories, options?: { seed?: boolean }): Promise<void>
+  /** Resolves when all queued writes are stored (used before reloads in tests). */
+  whenSaved(): Promise<void>
   reload(): Promise<void>
   tick(): void
 
@@ -241,6 +243,10 @@ export function createAppStore() {
           console.error(error)
           set({ status: 'error', errorKind: error instanceof StorageError ? error.kind : 'unknown' })
         }
+      },
+
+      whenSaved() {
+        return writeQueue
       },
 
       async reload() {

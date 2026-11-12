@@ -58,3 +58,10 @@ export function addDays(iso: string, days: number): string {
   const [y, m, d] = iso.split('-').map(Number)
   return toIso(new Date(y!, m! - 1, d! + days, 12))
 }
+
+/** Reloads after all queued writes are stored (a real user never reloads within milliseconds). */
+export async function reloadSaved(page: Page) {
+  await page.evaluate(() => (window as unknown as { __kanbanWhenSaved?: () => Promise<void> }).__kanbanWhenSaved?.())
+  await page.reload()
+  await expect(page.locator('.view__title')).toBeVisible()
+}
