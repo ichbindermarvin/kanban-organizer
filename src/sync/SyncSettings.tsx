@@ -74,7 +74,9 @@ function ConfigForm() {
   const [url, setUrl] = useState('')
   const [anonKey, setAnonKey] = useState('')
   const ids = { url: useId(), key: useId() }
-  const valid = /^https:\/\/\S+$/.test(url.trim()) && anonKey.trim().length > 20
+  // Secret keys (and legacy service_role JWTs) bypass Row Level Security: never accept them in the app.
+  const isSecret = /^sb_secret_/.test(anonKey.trim()) || /service_role/.test(decodeJwtRole(anonKey.trim()))
+  const valid = /^https:\/\/\S+$/.test(url.trim()) && anonKey.trim().length > 20 && !isSecret
   return (
     <form
       className="form-stack sync-form"
@@ -95,7 +97,21 @@ function ConfigForm() {
         <label className="field-label" htmlFor={ids.key}>
           {t('sync.anonKey')}
         </label>
-        <input id={ids.key} className="input input--full" value={anonKey} onChange={(e) => setAnonKey(e.target.value)} autoComplete="off" spellCheck={false} />
+        <input
+          id={ids.key}
+          className="input input--full"
+          value={anonKey}
+          placeholder="sb_publishable_…"
+          aria-invalid={isSecret}
+          onChange={(e) => setAnonKey(e.target.value)}
+          autoComplete="off"
+          spellCheck={false}
+        />
+        {isSecret && (
+          <p className="error-text small" role="alert">
+            {t('sync.secretKey')}
+          </p>
+        )}
       </div>
       <div>
         <button type="submit" className="btn btn--primary" disabled={!valid}>
@@ -256,4 +272,15 @@ function UnlockForm() {
       </div>
     </form>
   )
+}
+
+/** Role claim of a legacy JWT key ("anon" / "service_role"), or "" for other keys. */
+function decodeJwtRole(key: string): string {
+  const part = key.split('.')[1]
+  if (!key.startsWith('eyJ') || !part) return ''
+  try {
+    return String((JSON.parse(atob(part.replace(/-/g, '+').replace(/_/g, '/'))) as { role?: string }).role ?? '')
+  } catch {
+    return ''
+  }
 }

@@ -534,6 +534,17 @@ test('sync settings guide through connecting a server (no server configured)', a
   const connect = section.getByRole('button', { name: 'Verbinden' })
   await expect(connect).toBeDisabled()
   await section.getByLabel('Projekt-URL').fill('https://beispiel.supabase.co')
-  await section.getByLabel('Anon-Key (öffentlich)').fill('x'.repeat(40))
+  await section.getByLabel('Publishable Key (öffentlich)').fill('x'.repeat(40))
   await expect(connect).toBeEnabled()
+})
+
+test('sync settings refuse a secret key', async ({ page }) => {
+  await openApp(page, '#/settings')
+  const section = page.locator('section', { has: page.getByRole('heading', { name: 'Synchronisierung' }) })
+  await section.getByLabel('Projekt-URL').fill('https://beispiel.supabase.co')
+  await section.getByLabel('Publishable Key (öffentlich)').fill('sb_secret_' + 'x'.repeat(30))
+  await expect(section.getByRole('alert')).toContainText('Secret Key')
+  await expect(section.getByRole('button', { name: 'Verbinden' })).toBeDisabled()
+  await section.getByLabel('Publishable Key (öffentlich)').fill('sb_publishable_' + 'x'.repeat(30))
+  await expect(section.getByRole('button', { name: 'Verbinden' })).toBeEnabled()
 })

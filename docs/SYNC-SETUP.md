@@ -44,14 +44,17 @@ installierten iPhone-App, anders als Links).
 
 ## 4. Projekt mit der App verbinden
 
-In Supabase unter **Project Settings → API** (bzw. **API Keys**) stehen:
+In Supabase stehen:
 
-- **Project URL** (z. B. `https://abcdefgh.supabase.co`)
-- **anon public** Key (langer Text, beginnt meist mit `eyJ`)
+- **Project URL** (z. B. `https://abcdefgh.supabase.co`) – unter **Project Settings → Data API** bzw. auf der Projektübersicht
+- **Publishable Key** (beginnt mit `sb_publishable_`) – unter **Project Settings → API Keys**.
+  Ältere Projekte zeigen unter „Legacy API Keys“ noch den **anon**-Key (beginnt mit `eyJ`); der funktioniert auch,
+  wird von Supabase aber bis Ende 2026 abgelöst.
 
-> Niemals den **service_role**-Key verwenden oder weitergeben – der umgeht alle Schutzregeln.
+> Niemals den **Secret Key** (`sb_secret_…`) bzw. den alten **service_role**-Key verwenden oder weitergeben –
+> beide umgehen alle Schutzregeln. Die App lehnt sie ab.
 
-Der anon-Key ist öffentlich gedacht: Er steckt in jeder Web-App, die Supabase nutzt. Geschützt sind
+Der Publishable Key ist öffentlich gedacht: Er steckt in jeder Web-App, die Supabase nutzt. Geschützt sind
 Deine Daten durch Row Level Security (jeder sieht nur eigene Zeilen) und die Ende-zu-Ende-Verschlüsselung.
 
 **Variante A (empfohlen, dann auf jedem Gerät automatisch):** Im GitHub-Repository unter
@@ -60,7 +63,7 @@ Deine Daten durch Row Level Security (jeder sieht nur eigene Zeilen) und die End
 | Name | Wert |
 |---|---|
 | `SUPABASE_URL` | Project URL |
-| `SUPABASE_ANON_KEY` | anon public Key |
+| `SUPABASE_ANON_KEY` | Publishable Key (`sb_publishable_…`) |
 
 Danach unter **Actions → Deploy to GitHub Pages → Run workflow** neu veröffentlichen.
 
