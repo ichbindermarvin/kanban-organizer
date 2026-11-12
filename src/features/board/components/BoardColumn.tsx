@@ -1,4 +1,5 @@
-import { memo, type ReactNode } from 'react'
+import { memo, useState, type ReactNode } from 'react'
+import { translate } from '@/shared/i18n'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import type { Column, Task } from '@/features/tasks/models/schemas'
@@ -39,6 +40,61 @@ function CollapseToggle({ name, collapsed, collapseStyle, foldsRight, onToggleCo
   )
 }
 
+/**
+ * Column name, renamable in place: click → text field, Enter saves, Escape cancels,
+ * an empty name restores the default name of the column type.
+ */
+function ColumnTitle({ column, name, headingId }: { column: Column; name: string; headingId: string }) {
+  const t = useT()
+  const locale = useAppStore((s) => s.settings.locale)
+  const updateColumn = useAppStore((s) => s.updateColumn)
+  const [editing, setEditing] = useState(false)
+  const [value, setValue] = useState('')
+  const defaultName = translate(locale, `column.${column.role}`)
+
+  if (editing)
+    return (
+      <input
+        className="column__title-input"
+        value={value}
+        autoFocus
+        maxLength={40}
+        placeholder={defaultName}
+        aria-label={t('column.renameTitle')}
+        onFocus={(e) => e.currentTarget.select()}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={() => {
+          if (value.trim() !== column.title) updateColumn(column.id, { title: value.trim() })
+          setEditing(false)
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur()
+          if (e.key === 'Escape') {
+            e.preventDefault()
+            e.stopPropagation()
+            setValue(column.title)
+            setEditing(false)
+          }
+        }}
+      />
+    )
+  return (
+    <h2 id={headingId} className="column__title" title={name}>
+      <button
+        type="button"
+        className="column__title-btn"
+        aria-description={t('column.renameHint', { name: defaultName })}
+        onClick={() => {
+          setValue(column.title || name)
+          setEditing(true)
+        }}
+      >
+        {name}
+      </button>
+    </h2>
+  )
+}
+
 function CountBadge({ column, totalCount }: { column: Column; totalCount: number }) {
   const t = useT()
   const limit = column.wipLimit
@@ -76,9 +132,7 @@ export function CollapsedColumn({
     return (
       <section ref={setNodeRef} className={`column ${roleClass} column--bar${isOver ? ' column--over' : ''}`} aria-labelledby={headingId} data-column={column.role}>
         <header className="column__header">
-          <h2 id={headingId} className="column__title" title={name}>
-            {name}
-          </h2>
+          <ColumnTitle column={column} name={name} headingId={headingId} />
           <span className="column__count" aria-label={t('column.count', { count: totalCount })}>
             {totalCount}
           </span>
@@ -126,9 +180,7 @@ export const BoardColumn = memo(function BoardColumn({ column, tasks, totalCount
       data-column={column.role}
     >
       <header className="column__header">
-        <h2 id={headingId} className="column__title" title={name}>
-          {name}
-        </h2>
+        <ColumnTitle column={column} name={name} headingId={headingId} />
         <CountBadge column={column} totalCount={totalCount} />
         <Menu label={`${t('column.menu')}: ${name}`} trigger={<Icon name="more" />} triggerClassName="icon-btn icon-btn--sm column__menu" entries={menuEntries} />
         {collapse?.showToggle && <CollapseToggle name={name} {...collapse} />}
@@ -169,9 +221,7 @@ export function GroupColumn({
   return (
     <section className="column column--group" aria-labelledby={headingId} data-column="group">
       <header className="column__header">
-        <h2 id={headingId} className="column__title" title={name}>
-          {name}
-        </h2>
+        <ColumnTitle column={group} name={name} headingId={headingId} />
         <span className="column__count" aria-label={t('column.count', { count: totalCount })}>
           {totalCount}
         </span>

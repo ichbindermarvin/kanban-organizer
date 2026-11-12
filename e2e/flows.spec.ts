@@ -501,3 +501,28 @@ test('flexible board: add, stack, split, delete columns and areas – persisted'
   await page.getByRole('menuitem', { name: 'Teilung aufheben' }).click()
   await expect(page.locator('section.column--group')).toHaveCount(0)
 })
+
+test('sub-column names of a split column can be edited in place', async ({ page }) => {
+  await openApp(page, '#/board')
+  await column(page, 'In Arbeit').getByRole('button', { name: 'Spaltenaktionen: In Arbeit' }).first().click()
+  await page.getByRole('menuitem', { name: 'Spalte teilen', exact: true }).click()
+  const subs = page.locator('section.column--group section.column--sub')
+  await expect(subs.locator('h2')).toHaveText(['In Arbeit', 'Fertig'])
+
+  await subs.nth(1).getByRole('button', { name: 'Fertig', exact: true }).click()
+  await page.keyboard.press('ControlOrMeta+a')
+  await page.keyboard.type('done')
+  await page.keyboard.press('Enter')
+  await subs.nth(0).getByRole('button', { name: 'In Arbeit', exact: true }).click()
+  await page.keyboard.press('ControlOrMeta+a')
+  await page.keyboard.type('i.A.')
+  await page.keyboard.press('Enter')
+  // Escape cancels an edit.
+  await page.locator('section.column--group > header').getByRole('button', { name: 'In Arbeit', exact: true }).click()
+  await page.keyboard.type('xyz')
+  await page.keyboard.press('Escape')
+
+  await page.reload()
+  await expect(page.locator('section.column--group section.column--sub h2')).toHaveText(['i.A.', 'done'])
+  await expect(page.locator('section.column--group > header h2')).toHaveText('In Arbeit')
+})

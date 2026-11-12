@@ -151,6 +151,7 @@ Wird eine Instanz erledigt (Spalte „Erledigt“, Kreis-Button, `X` oder Status
 ## Weitere Produktentscheidungen
 
 - **Flexibles Board:** Das Standardlayout sieht aus wie bisher, ist aber frei erweiterbar.
+  - **Spaltennamen** lassen sich direkt bearbeiten: Klick auf den Namen, auch bei Unterspalten („In Arbeit“, „Fertig“) und der Überschrift geteilter Spalten. Enter speichert, Esc bricht ab, leer = Standardname.
   - **Spalten** über „⋯“ an der Spalte: bearbeiten (Name, Typ, WIP-Limit), links/rechts/darunter einfügen, verschieben, teilen, einklappen, löschen, in einen anderen oder einen neuen Bereich verschieben.
   - **Gestapelte Spalten** („Spalte darunter einfügen“) teilen sich eine Spur, wie „Blockiert“ unter „Geplant“, und klappen zu einer Leiste ein. Angedeutete Pfeile führen von links, von oben und von rechts hinein (nie aus „Erledigt“).
   - **Geteilte Spalten** sind nie Standard, sondern nur auf Wunsch („Spalte teilen“): zwei oder mehr Unterspalten nebeneinander unter einer gemeinsamen Überschrift, z. B. „Umsetzung: In Arbeit | Fertig“.
