@@ -421,3 +421,15 @@ test('"Wartet auf" is shown for blocked tasks only', async ({ page }) => {
   await page.getByRole('menuitem', { name: 'Verschieben nach … In Arbeit' }).click()
   await expect(card(column(page, 'In Arbeit'), 'Vertrag unterschreiben')).not.toContainText('Wartet auf')
 })
+
+test('"Erledigt" can be collapsed; completed tasks still land there', async ({ page }) => {
+  await openApp(page, '#/board')
+  await quickCapture(page, 'Fertig machen')
+  await page.getByRole('button', { name: 'Erledigt einklappen' }).click()
+  await card(column(page, 'Inbox'), 'Fertig machen').getByRole('button', { name: '„Fertig machen“ als erledigt markieren' }).click()
+  await expect(card(page, 'Fertig machen')).toHaveCount(0)
+  await expect(column(page, 'Erledigt')).toContainText('1')
+  await page.reload()
+  await page.getByRole('button', { name: 'Erledigt ausklappen' }).click()
+  await expect(card(column(page, 'Erledigt'), 'Fertig machen')).toBeVisible()
+})

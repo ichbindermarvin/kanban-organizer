@@ -91,7 +91,7 @@ export function BoardView() {
     const ids = new Set<string>()
     const backlog = columns.find((c) => c.role === 'backlog')
     if (backlog && backlogCollapsed) ids.add(backlog.id)
-    for (const column of columns) if (column.role === 'blocked' && column.collapsed) ids.add(column.id)
+    for (const column of columns) if ((column.role === 'blocked' || column.role === 'done') && column.collapsed) ids.add(column.id)
     return ids
   }, [columns, backlogCollapsed])
   /** Board tracks: "Blockiert" shares the track of "Geplant" and is rendered below it. */
@@ -191,7 +191,7 @@ export function BoardView() {
     .map((track, index) => {
       const previous = tracks[index - 1]?.[0]
       const arrow = previous ? (previous.role === 'backlog' ? 'var(--flow-gap-detached) ' : 'var(--flow-gap) ') : ''
-      const collapsedStrip = track.length === 1 && collapsedIds.has(track[0]!.id) && track[0]!.role === 'backlog'
+      const collapsedStrip = track.length === 1 && collapsedIds.has(track[0]!.id)
       return arrow + (collapsedStrip ? 'var(--column-collapsed-w)' : 'minmax(var(--column-min-w), 1fr)')
     })
     .join(' ')
@@ -250,7 +250,7 @@ export function BoardView() {
                 onToggleCollapse={
                   column.role === 'backlog'
                     ? () => updateSettings({ backlogCollapsed: !backlogCollapsed })
-                    : column.role === 'blocked'
+                    : column.role === 'blocked' || column.role === 'done'
                       ? () => updateColumn(column.id, { collapsed: !column.collapsed })
                       : undefined
                 }

@@ -17,7 +17,7 @@ interface BoardColumnProps {
   tasks: Task[]
   totalCount: number
   dragDisabled: boolean
-  /** Backlog (to a vertical strip) and "Blockiert" (to a horizontal bar) can be collapsed. */
+  /** Backlog and "Erledigt" collapse to a vertical strip, "Blockiert" to a horizontal bar. */
   collapsed?: boolean
   onToggleCollapse?: () => void
 }
@@ -61,7 +61,15 @@ export const BoardColumn = memo(function BoardColumn({ column, tasks, totalCount
 
   // The backlog collapses sideways, "Blockiert" (stacked below "Geplant") collapses downwards.
   const horizontal = column.role === 'blocked'
-  const toggleIcon = horizontal ? (collapsed ? 'chevronUp' : 'chevronDown') : collapsed ? 'chevronRight' : 'chevronLeft'
+  // "Erledigt" sits at the right edge and folds to the right; the backlog folds to the left.
+  const foldsRight = column.role === 'done'
+  const toggleIcon = horizontal
+    ? collapsed
+      ? 'chevronUp'
+      : 'chevronDown'
+    : collapsed === foldsRight
+      ? 'chevronRight'
+      : 'chevronLeft'
   const toggle = onToggleCollapse && (
     <button
       type="button"
