@@ -1,5 +1,6 @@
 import { CARD_COLORS, type CardColor, type Task } from '@/features/tasks/models/schemas'
 import { columnTitle, useAppStore } from '@/state/appStore'
+import { leafColumnsInOrder } from '@/features/board/services/layout'
 import { Menu, type MenuEntry } from '@/shared/components/Menu'
 import { Icon } from '@/shared/components/Icon'
 import { useT } from '@/shared/hooks/useT'
@@ -12,7 +13,8 @@ export function TaskActionsMenu({ task }: { task: Task }) {
   const columns = useAppStore((s) => s.columns)
   const settings = useAppStore((s) => s.settings)
   const store = useAppStore.getState
-  const boardColumns = columns.filter((c) => c.boardId === task.boardId).sort((a, b) => a.position - b.position)
+  const board = useAppStore((s) => s.boards.find((b) => b.id === task.boardId))
+  const boardColumns = leafColumnsInOrder(board, columns)
   const current = boardColumns.find((c) => c.id === task.columnId)
   const title = task.title || t('task.untitled')
 

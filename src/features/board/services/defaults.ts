@@ -26,9 +26,19 @@ function buildColumn(boardId: string, role: ColumnRole, position: number, now: s
   }
 }
 
+/**
+ * Standard layout: one area, Backlog → Inbox → Geplant (with "Blockiert" stacked below, collapsed)
+ * → In Arbeit → Erledigt. Everything can be changed afterwards.
+ */
 export function createDefaultBoard(now: string, name = 'Persönlich'): { board: Board; columns: Column[] } {
-  const board: Board = { id: newId(), name, createdAt: now, updatedAt: now }
-  const columns = DEFAULT_COLUMN_ROLES.map((role, index) => buildColumn(board.id, role, index, now))
+  const areaId = newId()
+  const board: Board = { id: newId(), name, areas: [{ id: areaId, title: '', row: 0, position: 0 }], createdAt: now, updatedAt: now }
+  let track = -1
+  const columns = DEFAULT_COLUMN_ROLES.map((role, index) => {
+    const stacked = role === 'blocked'
+    if (!stacked) track++
+    return { ...buildColumn(board.id, role, index, now), areaId, track, stack: stacked ? 1 : 0 }
+  })
   return { board, columns }
 }
 
@@ -55,6 +65,10 @@ export function missingDefaultColumns(boards: Pick<Board, 'id'>[], columns: Colu
   return created
 }
 
+/** First task column of a role on a board, in layout order when the board is known. */
 export function columnByRole(columns: Column[], boardId: string, role: ColumnRole): Column | undefined {
-  return columns.find((c) => c.boardId === boardId && c.role === role)
+  const candidates = columns.filter((c) => c.boardId === boardId && c.role === role && c.kind !== 'group' && !c.deletedAt)
+  if (candidates.length <= 1) return candidates[0]
+  // Prefer the top-left one: lowest track, then stack, then position.
+  return [...candidates].sort((a, b) => (a.track ?? 99) - (b.track ?? 99) || (a.stack ?? 0) - (b.stack ?? 0) || a.position - b.position)[0]
 }

@@ -27,16 +27,22 @@ export function Menu({ label, entries, trigger, triggerClassName = 'icon-btn' }:
     if (restoreFocus) buttonRef.current?.focus()
   }, [])
 
-  useLayoutEffect(() => {
-    if (!open || !buttonRef.current || !menuRef.current) return
+  /** Places the menu below (or above) its button, inside the viewport. */
+  const place = useCallback(() => {
+    if (!buttonRef.current || !menuRef.current) return
     const rect = buttonRef.current.getBoundingClientRect()
     const menuRect = menuRef.current.getBoundingClientRect()
     const below = rect.bottom + 4
     const top = below + menuRect.height > window.innerHeight - 8 ? Math.max(8, rect.top - menuRect.height - 4) : below
     const left = Math.min(Math.max(8, rect.right - menuRect.width), window.innerWidth - menuRect.width - 8)
     setPosition({ top, left })
-    menuRef.current.querySelector<HTMLElement>('[role="menuitem"]:not([disabled])')?.focus()
-  }, [open])
+  }, [])
+
+  useLayoutEffect(() => {
+    if (!open || !menuRef.current) return
+    place()
+    menuRef.current.querySelector<HTMLElement>('[role^="menuitem"]:not([disabled])')?.focus({ preventScroll: true })
+  }, [open, place])
 
   useEffect(() => {
     if (!open) return
@@ -44,8 +50,9 @@ export function Menu({ label, entries, trigger, triggerClassName = 'icon-btn' }:
       const target = event.target as Node
       if (!menuRef.current?.contains(target) && !buttonRef.current?.contains(target)) close(false)
     }
+    // Scrolling (e.g. a wide board) keeps the menu open and moves it along with its button.
     const onScroll = (event: Event) => {
-      if (!menuRef.current?.contains(event.target as Node)) close(false)
+      if (!menuRef.current?.contains(event.target as Node)) place()
     }
     document.addEventListener('pointerdown', onPointer, true)
     window.addEventListener('scroll', onScroll, true)
@@ -55,7 +62,7 @@ export function Menu({ label, entries, trigger, triggerClassName = 'icon-btn' }:
       window.removeEventListener('scroll', onScroll, true)
       window.removeEventListener('resize', onScroll)
     }
-  }, [open, close])
+  }, [open, close, place])
 
   const onMenuKeyDown = (event: React.KeyboardEvent) => {
     const items = [...(menuRef.current?.querySelectorAll<HTMLElement>('[role^="menuitem"]:not([disabled])') ?? [])]

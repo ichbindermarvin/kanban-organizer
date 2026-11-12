@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CARD_COLORS, LOCALES, THEMES, type Settings } from '@/features/tasks/models/schemas'
+import { leafColumnsInOrder } from '@/features/board/services/layout'
 import { parseBackup } from '@/features/settings/services/backup'
 import type { DataSnapshot } from '@/db/repositories/types'
 import { columnTitle, useAppStore } from '@/state/appStore'
@@ -16,7 +17,8 @@ export function SettingsView() {
   const settings = useAppStore((s) => s.settings)
   const allColumns = useAppStore((s) => s.columns)
   const boardId = useAppStore((s) => s.activeBoardId())
-  const columns = useMemo(() => allColumns.filter((c) => c.boardId === boardId).sort((a, b) => a.position - b.position), [allColumns, boardId])
+  const board = useAppStore((s) => s.boards.find((b) => b.id === boardId))
+  const columns = useMemo(() => leafColumnsInOrder(board, allColumns), [board, allColumns])
   const { updateSettings, updateColumn, importSnapshot, showToast, setHelpOpen } = useAppStore.getState()
   const fileRef = useRef<HTMLInputElement>(null)
   const [importError, setImportError] = useState<string>()

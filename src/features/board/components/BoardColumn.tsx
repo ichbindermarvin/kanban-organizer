@@ -1,76 +1,32 @@
-import { memo, useState } from 'react'
-import { NameDialog } from '@/shared/components/NameDialog'
-import { translate } from '@/shared/i18n'
-import type { MenuEntry } from '@/shared/components/Menu'
+import { memo, type ReactNode } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import type { Column, Task } from '@/features/tasks/models/schemas'
 import { columnTitle, useAppStore } from '@/state/appStore'
 import { useT } from '@/shared/hooks/useT'
-import { Menu } from '@/shared/components/Menu'
+import { Menu, type MenuEntry } from '@/shared/components/Menu'
 import { Icon } from '@/shared/components/Icon'
 import { SortableTaskCard } from './SortableTaskCard'
 import { ColumnComposer } from './ColumnComposer'
 
-interface BoardColumnProps {
-  column: Column
-  tasks: Task[]
-  totalCount: number
-  dragDisabled: boolean
-  /** Backlog and "Erledigt" collapse to a vertical strip, "Blockiert" to a horizontal bar. */
-  collapsed?: boolean
-  onToggleCollapse?: () => void
-}
-
 export const COLUMN_PREFIX = 'column:'
 
-export const BoardColumn = memo(function BoardColumn({ column, tasks, totalCount, dragDisabled, collapsed, onToggleCollapse }: BoardColumnProps) {
-  const t = useT()
-  const locale = useAppStore((s) => s.settings.locale)
-  const archiveDone = useAppStore((s) => s.archiveDone)
-  const updateColumn = useAppStore((s) => s.updateColumn)
-  const [renaming, setRenaming] = useState(false)
-  const { setNodeRef, isOver } = useDroppable({ id: COLUMN_PREFIX + column.id })
-  const name = columnTitle(column, locale)
-  const headingId = `column-heading-${column.id}`
-  const limit = column.wipLimit
-  const wipState = limit ? (totalCount > limit ? 'over' : totalCount === limit ? 'full' : 'ok') : undefined
-  const done = column.role === 'done'
-  const defaultName = translate(locale, `column.${column.role}`)
-  const menuEntries: MenuEntry[] = [{ type: 'item', label: t('column.rename'), icon: <Icon name="edit" />, onSelect: () => setRenaming(true) }]
-  if (done) {
-    menuEntries.push(
-      { type: 'separator' },
-      { type: 'item', label: t('column.archiveDone'), icon: <Icon name="archive" />, onSelect: () => archiveDone() },
-      { type: 'item', label: t('column.archiveOld'), icon: <Icon name="archive" />, onSelect: () => archiveDone(30) },
-    )
-  }
-  const renameDialog = renaming && (
-    <NameDialog
-      title={t('column.renameTitle')}
-      label={t('boards.name')}
-      initialValue={column.title}
-      placeholder={defaultName}
-      hint={t('column.renameHint', { name: defaultName })}
-      allowEmpty
-      submitLabel={t('common.save')}
-      onSubmit={(title) => updateColumn(column.id, { title })}
-      onClose={() => setRenaming(false)}
-    />
-  )
+export interface CollapseProps {
+  collapsed: boolean
+  /** strip = vertical strip (column alone in its track), bar = horizontal bar (stacked). */
+  collapseStyle: 'strip' | 'bar'
+  /** Always show the collapse button in the header (otherwise it is in the menu). */
+  showToggle: boolean
+  /** Strips fold towards the right edge (e.g. "Erledigt") instead of the left. */
+  foldsRight?: boolean
+  onToggleCollapse: () => void
+}
 
-  // The backlog collapses sideways, "Blockiert" (stacked below "Geplant") collapses downwards.
-  const horizontal = column.role === 'blocked'
-  // "Erledigt" sits at the right edge and folds to the right; the backlog folds to the left.
-  const foldsRight = column.role === 'done'
-  const toggleIcon = horizontal
-    ? collapsed
-      ? 'chevronUp'
-      : 'chevronDown'
-    : collapsed === foldsRight
-      ? 'chevronRight'
-      : 'chevronLeft'
-  const toggle = onToggleCollapse && (
+function CollapseToggle({ name, collapsed, collapseStyle, foldsRight, onToggleCollapse }: CollapseProps & { name: string }) {
+  const t = useT()
+  // The arrow points where the column goes: collapsing folds it towards its edge, expanding away from it.
+  const icon = collapseStyle === 'bar' ? (collapsed ? 'chevronUp' : 'chevronDown') : collapsed !== !!foldsRight ? 'chevronRight' : 'chevronLeft'
+  return (
     <button
       type="button"
       className="icon-btn icon-btn--sm column__toggle"
@@ -78,62 +34,104 @@ export const BoardColumn = memo(function BoardColumn({ column, tasks, totalCount
       aria-label={collapsed ? t('column.expand', { column: name }) : t('column.collapse', { column: name })}
       onClick={onToggleCollapse}
     >
-      <Icon name={toggleIcon} size={14} />
+      <Icon name={icon} size={14} />
     </button>
   )
+}
 
-  if (collapsed && horizontal) {
+function CountBadge({ column, totalCount }: { column: Column; totalCount: number }) {
+  const t = useT()
+  const limit = column.wipLimit
+  if (!limit)
     return (
-      <section ref={setNodeRef} className={`column column--${column.role} column--bar${isOver ? ' column--over' : ''}`} aria-labelledby={headingId} data-column={column.role}>
+      <span className="column__count" aria-label={t('column.count', { count: totalCount })}>
+        {totalCount}
+      </span>
+    )
+  const state = totalCount > limit ? 'over' : totalCount === limit ? 'full' : 'ok'
+  return (
+    <span className={`column__count column__count--wip column__count--${state}`} title={t('column.wipLabel', { count: totalCount, limit })}>
+      {state !== 'ok' && <Icon name="alert" size={12} />}
+      <span aria-hidden="true">{t('column.wip', { count: totalCount, limit })}</span>
+      <span className="visually-hidden">{t('column.wipLabel', { count: totalCount, limit })}</span>
+    </span>
+  )
+}
+
+/** Collapsed column or group: a vertical strip or a horizontal bar that still accepts drops. */
+export function CollapsedColumn({
+  column,
+  dropId,
+  totalCount,
+  menuEntries,
+  ...collapse
+}: CollapseProps & { column: Column; dropId: string; totalCount: number; menuEntries: MenuEntry[] }) {
+  const t = useT()
+  const locale = useAppStore((s) => s.settings.locale)
+  const { setNodeRef, isOver } = useDroppable({ id: COLUMN_PREFIX + dropId })
+  const name = columnTitle(column, locale)
+  const headingId = `column-heading-${column.id}`
+  const roleClass = column.kind === 'group' ? 'column--group' : `column--${column.role}`
+  if (collapse.collapseStyle === 'bar')
+    return (
+      <section ref={setNodeRef} className={`column ${roleClass} column--bar${isOver ? ' column--over' : ''}`} aria-labelledby={headingId} data-column={column.role}>
         <header className="column__header">
-          <h2 id={headingId} className="column__title">
+          <h2 id={headingId} className="column__title" title={name}>
             {name}
           </h2>
           <span className="column__count" aria-label={t('column.count', { count: totalCount })}>
             {totalCount}
           </span>
           <Menu label={`${t('column.menu')}: ${name}`} trigger={<Icon name="more" />} triggerClassName="icon-btn icon-btn--sm column__menu" entries={menuEntries} />
-          {toggle}
+          <CollapseToggle name={name} {...collapse} />
         </header>
-        {renameDialog}
       </section>
     )
-  }
+  return (
+    <section ref={setNodeRef} className={`column ${roleClass} column--collapsed${isOver ? ' column--over' : ''}`} aria-labelledby={headingId} data-column={column.role}>
+      <CollapseToggle name={name} {...collapse} />
+      <h2 id={headingId} className="column__title column__title--vertical">
+        {name}
+      </h2>
+      <span className="column__count" aria-label={t('column.count', { count: totalCount })}>
+        {totalCount}
+      </span>
+    </section>
+  )
+}
 
-  if (collapsed) {
-    return (
-      <section ref={setNodeRef} className={`column column--${column.role} column--collapsed${isOver ? ' column--over' : ''}`} aria-labelledby={headingId} data-column={column.role}>
-        {toggle}
-        <h2 id={headingId} className="column__title column__title--vertical">
-          {name}
-        </h2>
-        <span className="column__count" aria-label={t('column.count', { count: totalCount })}>
-          {totalCount}
-        </span>
-        {renameDialog}
-      </section>
-    )
-  }
+interface BoardColumnProps {
+  column: Column
+  tasks: Task[]
+  totalCount: number
+  dragDisabled: boolean
+  menuEntries: MenuEntry[]
+  collapse?: CollapseProps
+  /** Sub-column of a split column: compact header, no own background. */
+  sub?: boolean
+}
+
+export const BoardColumn = memo(function BoardColumn({ column, tasks, totalCount, dragDisabled, menuEntries, collapse, sub }: BoardColumnProps) {
+  const t = useT()
+  const locale = useAppStore((s) => s.settings.locale)
+  const { setNodeRef, isOver } = useDroppable({ id: COLUMN_PREFIX + column.id })
+  const name = columnTitle(column, locale)
+  const headingId = `column-heading-${column.id}`
+  const done = column.role === 'done'
 
   return (
-    <section className={`column column--${column.role}${isOver ? ' column--over' : ''}`} aria-labelledby={headingId} data-column={column.role}>
+    <section
+      className={`column column--${column.role}${sub ? ' column--sub' : ''}${isOver ? ' column--over' : ''}`}
+      aria-labelledby={headingId}
+      data-column={column.role}
+    >
       <header className="column__header">
-        <h2 id={headingId} className="column__title">
+        <h2 id={headingId} className="column__title" title={name}>
           {name}
         </h2>
-        {limit ? (
-          <span className={`column__count column__count--wip column__count--${wipState}`} title={t('column.wipLabel', { count: totalCount, limit })}>
-            {wipState !== 'ok' && <Icon name="alert" size={12} />}
-            <span aria-hidden="true">{t('column.wip', { count: totalCount, limit })}</span>
-            <span className="visually-hidden">{t('column.wipLabel', { count: totalCount, limit })}</span>
-          </span>
-        ) : (
-          <span className="column__count" aria-label={t('column.count', { count: totalCount })}>
-            {totalCount}
-          </span>
-        )}
+        <CountBadge column={column} totalCount={totalCount} />
         <Menu label={`${t('column.menu')}: ${name}`} trigger={<Icon name="more" />} triggerClassName="icon-btn icon-btn--sm column__menu" entries={menuEntries} />
-        {toggle}
+        {collapse?.showToggle && <CollapseToggle name={name} {...collapse} />}
       </header>
       <SortableContext id={column.id} items={tasks.map((task) => task.id)} strategy={verticalListSortingStrategy}>
         <div ref={setNodeRef} className="column__list" role="list" aria-labelledby={headingId}>
@@ -146,7 +144,41 @@ export const BoardColumn = memo(function BoardColumn({ column, tasks, totalCount
           {!done && <ColumnComposer columnId={column.id} columnName={name} />}
         </div>
       </SortableContext>
-      {renameDialog}
     </section>
   )
 })
+
+/** Split column: a shared header above sub-columns that sit side by side. */
+export function GroupColumn({
+  group,
+  totalCount,
+  menuEntries,
+  collapse,
+  children,
+}: {
+  group: Column
+  totalCount: number
+  menuEntries: MenuEntry[]
+  collapse?: CollapseProps
+  children: ReactNode
+}) {
+  const t = useT()
+  const locale = useAppStore((s) => s.settings.locale)
+  const name = columnTitle(group, locale)
+  const headingId = `column-heading-${group.id}`
+  return (
+    <section className="column column--group" aria-labelledby={headingId} data-column="group">
+      <header className="column__header">
+        <h2 id={headingId} className="column__title" title={name}>
+          {name}
+        </h2>
+        <span className="column__count" aria-label={t('column.count', { count: totalCount })}>
+          {totalCount}
+        </span>
+        <Menu label={`${t('column.menu')}: ${name}`} trigger={<Icon name="more" />} triggerClassName="icon-btn icon-btn--sm column__menu" entries={menuEntries} />
+        {collapse?.showToggle && <CollapseToggle name={name} {...collapse} />}
+      </header>
+      <div className="column-group__children">{children}</div>
+    </section>
+  )
+}

@@ -150,6 +150,15 @@ Wird eine Instanz erledigt (Spalte „Erledigt“, Kreis-Button, `X` oder Status
 
 ## Weitere Produktentscheidungen
 
+- **Flexibles Board:** Das Standardlayout sieht aus wie bisher, ist aber frei erweiterbar.
+  - **Spalten** über „⋯“ an der Spalte: bearbeiten (Name, Typ, WIP-Limit), links/rechts/darunter einfügen, verschieben, teilen, einklappen, löschen, in einen anderen oder einen neuen Bereich verschieben.
+  - **Gestapelte Spalten** („Spalte darunter einfügen“) teilen sich eine Spur, wie „Blockiert“ unter „Geplant“, und klappen zu einer Leiste ein. Angedeutete Pfeile führen von links, von oben und von rechts hinein (nie aus „Erledigt“).
+  - **Geteilte Spalten** sind nie Standard, sondern nur auf Wunsch („Spalte teilen“): zwei oder mehr Unterspalten nebeneinander unter einer gemeinsamen Überschrift, z. B. „Umsetzung: In Arbeit | Fertig“.
+  - **Bereiche** (Board anpassen → „Bereich hinzufügen“) sind eigene Flüsse im Board, etwa ein Mini-Board „Daily Business“. Sie liegen in Zeilen, können nebeneinander stehen, haben eine Höhe (klein/normal/groß) und lassen sich einklappen.
+  - **Spaltentyp statt Name:** Backlog, Eingang, Offen, Wartet, In Arbeit oder Erledigt steuern „Heute“, das Abhaken, Wiederholungen und Quick Capture. Jedes Board behält mindestens eine Spalte vom Typ „Eingang“ und eine vom Typ „Erledigt“.
+  - **Löschen** einer Spalte oder eines Bereichs verschiebt die Aufgaben in die erste Eingangs-Spalte, nach Rückfrage.
+  - Bestehende Boards werden per Migration (Version 4) ins neue Modell übertragen und sehen danach genauso aus wie vorher.
+
 - **Mehrere Boards (bis zu 3):** Die Boards stehen in der Sidebar. Über „⋯“ lassen sie sich umbenennen oder löschen, das Löschen lässt sich rückgängig machen. Das letzte Board kann nicht gelöscht werden. Jedes neue Board startet mit den Standardspalten. „Heute“, „Überfällig“ und „Hohe Priorität“ zeigen Aufgaben aus allen Boards, mit dem Board-Namen an der Aufgabe. Board, Filter und Quick Capture beziehen sich auf das aktive Board, in Quick Capture lässt sich das Board aber wählen.
 - **Spalten umbenennen:** über „⋯“ an der Spalte. Leer lassen stellt den Standardnamen wieder her. Die Logik (z. B. „Erledigt“ setzt `completedAt`) hängt an der festen Rolle der Spalte, nicht am Namen. Umbenennen ist deshalb gefahrlos.
 

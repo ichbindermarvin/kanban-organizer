@@ -234,9 +234,20 @@ describe('app store with IndexedDB', () => {
     const { s, flush } = await setup()
     await flush()
     const snapshot = s().exportSnapshot()
-    const old = { ...snapshot, columns: snapshot.columns.filter((c) => c.role !== 'backlog' && c.role !== 'blocked') }
+    // A backup from before backlog, blocked and flexible layouts: no areas, no layout fields.
+    const old = {
+      ...snapshot,
+      boards: snapshot.boards.map(({ areas: _a, ...board }) => board),
+      columns: snapshot.columns
+        .filter((c) => c.role !== 'backlog' && c.role !== 'blocked')
+        .map(({ areaId: _a, track: _t, stack: _s, collapsed: _c, ...column }) => column),
+    }
     expect(await s().importSnapshot(old)).toEqual({ ok: true })
     expect(s().boardColumns().map((c) => c.role)).toEqual(['backlog', 'inbox', 'planned', 'blocked', 'doing', 'done'])
+    const blocked = s().columns.find((c) => c.role === 'blocked')!
+    const planned = s().columns.find((c) => c.role === 'planned')!
+    expect(blocked.track).toBe(planned.track)
+    expect(blocked.stack).toBe(1)
   })
 
   it('rolls back the UI when a write fails', async () => {

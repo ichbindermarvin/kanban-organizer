@@ -2,6 +2,7 @@ import Dexie from 'dexie'
 import { KanbanDatabase } from '../database'
 import { CURRENT_DB_VERSION } from './index'
 import { missingDefaultColumns } from '@/features/board/services/defaults'
+import { buildLayout } from '@/features/board/services/layout'
 import { makeBoard, makeTask, NOW } from '@/tests/factories'
 
 describe('IndexedDB migrations', () => {
@@ -26,6 +27,32 @@ describe('IndexedDB migrations', () => {
     expect(migrated.map((c) => c.role)).toEqual(['backlog', 'inbox', 'planned', 'blocked', 'doing', 'done'])
     expect(await db.tasks.get(task.id)).toEqual(task)
     expect(migrated.filter((c) => c.role !== 'backlog' && c.role !== 'blocked')).toEqual(expect.arrayContaining(v1Columns))
+    db.close()
+  })
+
+  it('v3 → v4 gives existing boards a layout that looks exactly like before', async () => {
+    const name = 'migration-v3'
+    const { board, columns, inbox } = makeBoard()
+    // A v3 board: all six columns, no areas, no layout fields; "Blockiert" has a custom name.
+    const v3Board = { ...board, areas: undefined }
+    const v3Columns = columns.map(({ areaId: _a, track: _t, stack: _s, ...c }) => (c.role === 'blocked' ? { ...c, title: 'Wartet' } : c))
+    const task = makeTask(inbox, { title: 'Echte Aufgabe', color: 'blue' })
+    const legacy = new Dexie(name)
+    legacy.version(3).stores({ boards: 'id', columns: 'id, boardId', tasks: 'id, boardId, columnId, recurrenceSeriesId', settings: 'id' })
+    await legacy.table('boards').add(v3Board)
+    await legacy.table('columns').bulkAdd(v3Columns)
+    await legacy.table('tasks').add(task)
+    legacy.close()
+
+    const db = new KanbanDatabase(name)
+    await db.open()
+    const migratedBoard = (await db.boards.get(board.id))!
+    const migrated = await db.columns.toArray()
+    expect(migratedBoard.areas).toHaveLength(1)
+    expect(migrated).toHaveLength(6)
+    const tracks = buildLayout(migratedBoard, migrated)[0]!.areas[0]!.tracks.map((t) => t.slots.map((s) => s.column.title || s.column.role))
+    expect(tracks).toEqual([['backlog'], ['inbox'], ['planned', 'Wartet'], ['doing'], ['done']])
+    expect(await db.tasks.get(task.id)).toEqual(task)
     db.close()
   })
 })

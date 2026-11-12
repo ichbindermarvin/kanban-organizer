@@ -324,7 +324,7 @@ test('up to three boards; boards and columns can be renamed', async ({ page }) =
   await page.keyboard.press('Enter')
   await expect(page.getByRole('heading', { level: 1, name: 'Handball' })).toBeVisible()
   await column(page, 'Inbox').getByRole('button', { name: 'Spaltenaktionen: Inbox' }).click()
-  await page.getByRole('menuitem', { name: 'Spalte umbenennen' }).click()
+  await page.getByRole('menuitem', { name: 'Spalte bearbeiten' }).click()
   await page.getByLabel('Name').fill('Ideen')
   await page.keyboard.press('Enter')
   await expect(column(page, 'Ideen')).toBeVisible()
@@ -390,7 +390,7 @@ test('"Blockiert" sits below "Geplant", can be collapsed, renamed and receives d
   await expect(column(page, 'Blockiert')).toContainText('2')
 
   await column(page, 'Blockiert').getByRole('button', { name: 'Spaltenaktionen: Blockiert' }).click()
-  await page.getByRole('menuitem', { name: 'Spalte umbenennen' }).click()
+  await page.getByRole('menuitem', { name: 'Spalte bearbeiten' }).click()
   await page.getByLabel('Name').fill('Wartet')
   await page.keyboard.press('Enter')
   await page.getByRole('button', { name: 'Wartet ausklappen' }).click()
@@ -432,4 +432,72 @@ test('"Erledigt" can be collapsed; completed tasks still land there', async ({ p
   await page.reload()
   await page.getByRole('button', { name: 'Erledigt ausklappen' }).click()
   await expect(card(column(page, 'Erledigt'), 'Fertig machen')).toBeVisible()
+})
+
+test('flexible board: add, stack, split, delete columns and areas – persisted', async ({ page }) => {
+  await openApp(page, '#/board')
+  const columnMenu = async (name: string, item: string) => {
+    await column(page, name).getByRole('button', { name: `Spaltenaktionen: ${name}` }).first().click()
+    await page.getByRole('menuitem', { name: item, exact: true }).click()
+  }
+  const editColumn = async (name: string, type?: string) => {
+    const dialog = page.getByRole('dialog', { name: /bearbeiten/ })
+    await dialog.getByLabel('Name').fill(name)
+    if (type) await dialog.getByLabel('Typ').selectOption(type)
+    await dialog.getByRole('button', { name: 'Speichern' }).click()
+    await expect(dialog).toBeHidden()
+  }
+
+  // Insert a column to the right of Inbox and one stacked below it.
+  await columnMenu('Inbox', 'Spalte rechts einfügen')
+  await editColumn('Recherche')
+  await columnMenu('Recherche', 'Spalte darunter einfügen')
+  await editColumn('Freigabe', 'blocked')
+  await expect(page.locator('section.area').first().getByRole('group')).toHaveAccessibleName(
+    'Arbeitsfluss: Backlog → Inbox → Recherche / Freigabe → Geplant / Blockiert → In Arbeit → Erledigt',
+  )
+
+  // Split "In Arbeit" into two sub-columns; tasks stay in the first one.
+  await quickCapture(page, 'Laufende Aufgabe')
+  await card(column(page, 'Inbox'), 'Laufende Aufgabe').getByRole('button', { name: /Aktionen für/ }).click()
+  await page.getByRole('menuitem', { name: 'Verschieben nach … In Arbeit' }).click()
+  await columnMenu('In Arbeit', 'Spalte teilen')
+  await expect(page.locator('section.column--group')).toHaveCount(1)
+  await expect(page.locator('section.column--group section.column--sub h2')).toHaveText(['In Arbeit', 'Fertig'])
+  await expect(card(page.locator('section.column--group section.column--sub').first(), 'Laufende Aufgabe')).toBeVisible()
+
+  // Deleting a column moves its tasks to the inbox; the last "Erledigt" column is protected.
+  await card(page, 'Laufende Aufgabe').getByRole('button', { name: /Aktionen für/ }).click()
+  await page.getByRole('menuitem', { name: 'Verschieben nach … Recherche' }).click()
+  await columnMenu('Recherche', 'Spalte löschen')
+  await expect(page.getByRole('alertdialog')).toContainText('1 Aufgaben werden nach „Inbox“ verschoben')
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Spalte löschen' }).click()
+  await expect(column(page, 'Recherche')).toHaveCount(0)
+  await expect(card(column(page, 'Inbox'), 'Laufende Aufgabe')).toBeVisible()
+  await columnMenu('Erledigt', 'Spalte löschen')
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Spalte löschen' }).click()
+  await expect(page.getByRole('alert').filter({ hasText: 'mindestens eine Spalte vom Typ „Erledigt“' })).toBeVisible()
+  await expect(column(page, 'Erledigt')).toBeVisible()
+
+  // Areas: a mini board, and the backlog moved into its own area.
+  await page.getByRole('button', { name: 'Board anpassen' }).click()
+  await page.getByRole('menuitem', { name: 'Bereich hinzufügen' }).click()
+  await page.getByLabel('Name des Bereichs').fill('Daily Business')
+  await page.keyboard.press('Enter')
+  await expect(page.locator('section.area[aria-label="Daily Business"]')).toBeVisible()
+  const expandBacklog = page.getByRole('button', { name: 'Backlog ausklappen' })
+  if (await expandBacklog.count()) await expandBacklog.click()
+  await columnMenu('Backlog', 'In neuen Bereich verschieben')
+  await expect(page.locator('section.area[aria-label="Backlog"]').locator('section.column h2')).toHaveText(['Backlog'])
+
+  await page.reload()
+  await expect(page.locator('section.area[aria-label="Daily Business"]').locator('section.column h2')).toHaveText(['Geplant', 'In Arbeit', 'Erledigt'])
+  await expect(page.locator('section.area[aria-label="Backlog"]')).toBeVisible()
+  await expect(page.locator('section.column--group section.column--sub h2')).toHaveText(['In Arbeit', 'Fertig'])
+  await expect(column(page, 'Freigabe')).toBeVisible()
+
+  // Removing the split brings back a single column.
+  await page.locator('section.column--group').getByRole('button', { name: 'Spaltenaktionen: In Arbeit' }).first().click()
+  await page.getByRole('menuitem', { name: 'Teilung aufheben' }).click()
+  await expect(page.locator('section.column--group')).toHaveCount(0)
 })

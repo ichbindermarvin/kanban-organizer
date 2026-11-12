@@ -1,6 +1,7 @@
 import type { Transaction } from 'dexie'
 import type { Board, Column } from '@/features/tasks/models/schemas'
 import { missingDefaultColumns } from '@/features/board/services/defaults'
+import { normalizeBoards } from '@/features/board/services/normalize'
 
 /**
  * IndexedDB schema history. Rules:
@@ -45,6 +46,19 @@ export const DB_MIGRATIONS: DbMigration[] = [
       const columns = (await tx.table('columns').toArray()) as Column[]
       const added = missingDefaultColumns(boards, columns, new Date().toISOString())
       if (added.length) await tx.table('columns').bulkAdd(added)
+    },
+  },
+  {
+    // v4: flexible layouts. Every board gets an area; columns get track/stack positions that
+    // reproduce the previous look (Blockiert stacked below Geplant).
+    version: 4,
+    stores: {},
+    upgrade: async (tx) => {
+      const boards = (await tx.table('boards').toArray()) as Board[]
+      const columns = (await tx.table('columns').toArray()) as Column[]
+      const changed = normalizeBoards(boards, columns, new Date().toISOString())
+      if (changed.boards.length) await tx.table('boards').bulkPut(changed.boards)
+      if (changed.columns.length) await tx.table('columns').bulkPut(changed.columns)
     },
   },
 ]

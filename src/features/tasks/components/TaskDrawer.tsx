@@ -9,6 +9,7 @@ import { useT } from '@/shared/hooks/useT'
 import { Icon } from '@/shared/components/Icon'
 import { addDaysIso, fromIsoDate, toIsoDate } from '@/shared/utils/dates'
 import { formatTimestamp } from '@/shared/utils/format'
+import { leafColumnsInOrder } from '@/features/board/services/layout'
 import { RecurrenceEditor } from '@/features/recurrence/components/RecurrenceEditor'
 import { TagInput } from './TagInput'
 import { SubtaskList } from './SubtaskList'
@@ -42,7 +43,8 @@ function TaskDrawer({ task }: { task: Task }) {
 
   useFocusTrap(ref, closeDrawer, titleRef)
 
-  const boardColumns = columns.filter((c) => c.boardId === task.boardId).sort((a, b) => a.position - b.position)
+  const board = useAppStore((s) => s.boards.find((b) => b.id === task.boardId))
+  const boardColumns = leafColumnsInOrder(board, columns)
   const current = boardColumns.find((c) => c.id === task.columnId)
   const setDue = (dueDate: string | undefined) => updateTask(task.id, { dueDate })
   const quickDates: { label: string; value: string | undefined }[] = [

@@ -1,8 +1,11 @@
 import { create } from 'zustand'
-import type { Board, Column, ColumnRole, Settings, Task } from '@/features/tasks/models/schemas'
+import type { Area, Board, Column, ColumnRole, Settings, Task } from '@/features/tasks/models/schemas'
 import type { DataSnapshot, Repositories } from '@/db/repositories/types'
 import { StorageError, type StorageErrorKind } from '@/db/database'
-import { MAX_BOARDS, columnByRole, createDefaultBoard, missingDefaultColumns } from '@/features/board/services/defaults'
+import { MAX_BOARDS, columnByRole, createDefaultBoard } from '@/features/board/services/defaults'
+import { normalizeBoards } from '@/features/board/services/normalize'
+import * as layout from '@/features/board/services/layout'
+import { isLeaf, leafColumnsInOrder, type AreaMove, type LayoutChange } from '@/features/board/services/layout'
 import { moveTask as computeMove, wouldExceedWip } from '@/features/board/services/moveTask'
 import { applyCompletionState, buildNextRecurrence, createTask, duplicateTask } from '@/features/tasks/services/taskOperations'
 import { tasksInColumn } from '@/features/tasks/services/taskQueries'
@@ -23,6 +26,9 @@ export interface Toast {
   actionLabel?: string
   action?: () => void
 }
+
+/** Result of a layout change that may be refused to keep the board usable. */
+export type LayoutResult = { ok: true } | { ok: false; reason: 'lastColumn' | 'lastInbox' | 'lastDone' | 'lastArea' }
 
 export interface PendingMove {
   taskId: string
@@ -81,7 +87,21 @@ export interface AppState {
   restoreTask(taskId: string): void
   duplicateTask(taskId: string): Task | undefined
   archiveDone(olderThanDays?: number): number
-  updateColumn(columnId: string, patch: Partial<Pick<Column, 'wipLimit' | 'title' | 'collapsed'>>): void
+  updateColumn(columnId: string, patch: Partial<Pick<Column, 'wipLimit' | 'title' | 'collapsed' | 'role'>>): LayoutResult
+
+  /* Flexible layout */
+  insertColumn(refId: string, where: 'left' | 'right' | 'below'): Column | undefined
+  moveColumn(columnId: string, direction: 'left' | 'right' | 'up' | 'down'): void
+  moveColumnToArea(columnId: string, areaId: string): void
+  moveColumnToNewArea(columnId: string): void
+  splitColumn(columnId: string): void
+  unsplitColumn(groupId: string): void
+  removeColumn(columnId: string): LayoutResult
+  addColumnToArea(areaId: string): Column | undefined
+  addArea(title: string): Area | undefined
+  moveArea(areaId: string, move: AreaMove): void
+  updateArea(areaId: string, patch: Partial<Pick<Area, 'title' | 'collapsed' | 'size'>>): void
+  removeArea(areaId: string): LayoutResult
   updateSettings(patch: Partial<Omit<Settings, 'id' | 'updatedAt'>>): void
   importSnapshot(snapshot: DataSnapshot): Promise<{ ok: true } | { ok: false }>
   exportSnapshot(): DataSnapshot
@@ -141,12 +161,31 @@ export function createAppStore() {
       void persist((repos) => repos.tasks.saveMany(cleaned))
     }
 
+    /** Applies a layout change: removed columns leave the UI, everything is persisted in order. */
+    const applyLayout = (change: LayoutChange) => {
+      const { columns, tasks, board } = change
+      if (!columns.length && !tasks.length && !board) return
+      const cleaned = columns.map(stripUndefined)
+      const byId = new Map(cleaned.map((c) => [c.id, c]))
+      const existing = new Set(get().columns.map((c) => c.id))
+      set((state) => ({
+        columns: [...state.columns.map((c) => byId.get(c.id) ?? c), ...cleaned.filter((c) => !existing.has(c.id))].filter((c) => !c.deletedAt),
+        boards: board ? state.boards.map((b) => (b.id === board.id ? board : b)) : state.boards,
+      }))
+      void persist(async (repos) => {
+        if (board) await repos.boards.saveMany([board])
+        if (cleaned.length) await repos.columns.saveMany(cleaned)
+      })
+      commitTasks(tasks)
+    }
+
     const findTask = (id: string) => get().tasks.find((task) => task.id === id)
 
     const applySnapshot = (snapshot: DataSnapshot) => {
       set({
         boards: snapshot.boards,
-        columns: snapshot.columns,
+        // Removed columns stay in the database as tombstones but never reach the UI.
+        columns: snapshot.columns.filter((c) => !c.deletedAt),
         tasks: snapshot.tasks,
         settings: snapshot.settings ?? DEFAULT_SETTINGS(nowTimestamp()),
       })
@@ -186,10 +225,11 @@ export function createAppStore() {
             snapshot.columns = columns
             snapshot.tasks = tasks
           }
-          const missing = missingDefaultColumns(snapshot.boards, snapshot.columns, now)
-          if (missing.length) {
-            await repos.columns.saveMany(missing)
-            snapshot.columns = [...snapshot.columns, ...missing]
+          const normalized = withNormalizedBoards(snapshot, now)
+          if (normalized.changed) {
+            await repos.boards.saveMany(normalized.snapshot.boards)
+            await repos.columns.saveMany(normalized.snapshot.columns)
+            Object.assign(snapshot, normalized.snapshot)
           }
           if (!snapshot.settings) {
             snapshot.settings = DEFAULT_SETTINGS(now)
@@ -222,9 +262,10 @@ export function createAppStore() {
 
       boardColumns() {
         const boardId = get().activeBoardId()
-        return get()
-          .columns.filter((c) => c.boardId === boardId)
-          .sort((a, b) => a.position - b.position)
+        return leafColumnsInOrder(
+          get().boards.find((b) => b.id === boardId),
+          get().columns,
+        )
       },
 
       activeBoards() {
@@ -322,7 +363,7 @@ export function createAppStore() {
         const state = get()
         const task = findTask(taskId)
         const target = state.columns.find((c) => c.id === toColumnId)
-        if (!task || !target) return false
+        if (!task || !target || !isLeaf(target)) return false
 
         if (task.columnId !== toColumnId && !options?.force && wouldExceedWip(target, state.tasks, taskId)) {
           set({ pendingMove: { taskId, toColumnId, toIndex } })
@@ -349,7 +390,7 @@ export function createAppStore() {
       moveToColumn(taskId, toColumnId) {
         const task = findTask(taskId)
         const target = get().columns.find((c) => c.id === toColumnId)
-        if (!task || !target || task.columnId === toColumnId) return false
+        if (!task || !target || !isLeaf(target) || task.columnId === toColumnId) return false
         // Completed tasks go to the top of "Erledigt" (most recent first), everything else to the end.
         const index = target.role === 'done' ? 0 : tasksInColumn(get().tasks, toColumnId).length
         return get().moveTask(taskId, toColumnId, index)
@@ -429,10 +470,116 @@ export function createAppStore() {
 
       updateColumn(columnId, patch) {
         const column = get().columns.find((c) => c.id === columnId)
-        if (!column) return
+        if (!column) return { ok: true }
         const updated = stripUndefined({ ...column, ...patch, updatedAt: nowTimestamp() })
+        if (patch.role && patch.role !== column.role) {
+          const refusal = checkLeaves(get().columns.map((c) => (c.id === columnId ? updated : c)), column.boardId)
+          if (refusal) return refusal
+        }
         set((state) => ({ columns: state.columns.map((c) => (c.id === columnId ? updated : c)) }))
         void persist((repos) => repos.columns.saveMany([updated]))
+        return { ok: true }
+      },
+
+      insertColumn(refId, where) {
+        const ref = get().columns.find((c) => c.id === refId)
+        if (!ref) return undefined
+        // A new column is a regular "open" column; type and name are set right after in the dialog.
+        const change = layout.insertColumn(get().columns, ref, where, 'planned', nowTimestamp())
+        applyLayout(change)
+        return change.created
+      },
+
+      moveColumn(columnId, direction) {
+        const column = get().columns.find((c) => c.id === columnId)
+        if (!column) return
+        const now = nowTimestamp()
+        const horizontal = direction === 'left' || direction === 'right'
+        const delta = direction === 'left' || direction === 'up' ? -1 : 1
+        // Sub-columns move within their group; top-level columns move their whole track or within the stack.
+        if (column.parentId) applyLayout(horizontal ? layout.moveWithinStack(get().columns, column, delta, now) : { columns: [], tasks: [] })
+        else applyLayout(horizontal ? layout.moveTrack(get().columns, column, delta, now) : layout.moveWithinStack(get().columns, column, delta, now))
+      },
+
+      moveColumnToArea(columnId, areaId) {
+        const column = get().columns.find((c) => c.id === columnId)
+        if (column) applyLayout(layout.moveColumnToArea(get().columns, column, areaId, nowTimestamp()))
+      },
+
+      moveColumnToNewArea(columnId) {
+        const column = get().columns.find((c) => c.id === columnId)
+        const board = get().boards.find((b) => b.id === column?.boardId)
+        if (!column || !board || column.parentId) return
+        const now = nowTimestamp()
+        // The new area sits directly above the column's current area and is named after the column.
+        const created = layout.addArea(board, columnTitle(column, get().settings.locale), now, { empty: true, aboveAreaId: column.areaId })
+        applyLayout(created)
+        applyLayout(layout.moveColumnToArea(get().columns, column, created.area.id, now))
+      },
+
+      splitColumn(columnId) {
+        const column = get().columns.find((c) => c.id === columnId)
+        if (!column || column.parentId || column.kind === 'group') return
+        applyLayout(layout.splitColumn(column, nowTimestamp(), [t('column.splitFirst'), t('column.splitSecond')]))
+      },
+
+      unsplitColumn(groupId) {
+        const group = get().columns.find((c) => c.id === groupId)
+        if (!group || group.kind !== 'group') return
+        applyLayout(layout.unsplitGroup(get().columns, get().tasks, group, nowTimestamp()))
+      },
+
+      removeColumn(columnId) {
+        const column = get().columns.find((c) => c.id === columnId)
+        if (!column) return { ok: true }
+        const removedIds = new Set([column.id, ...get().columns.filter((c) => c.parentId === column.id).map((c) => c.id)])
+        const remaining = get().columns.filter((c) => !removedIds.has(c.id))
+        const refusal = checkLeaves(remaining, column.boardId)
+        if (refusal) return refusal
+        const target = fallbackColumn(remaining, column.boardId)!
+        applyLayout(layout.deleteColumn(get().columns, get().tasks, column, target.id, nowTimestamp()))
+        return { ok: true }
+      },
+
+      addColumnToArea(areaId) {
+        const board = get().boards.find((b) => (b.areas ?? []).some((a) => a.id === areaId))
+        if (!board) return undefined
+        const inArea = get().columns.filter((c) => c.areaId === areaId && !c.parentId)
+        const track = inArea.length ? Math.max(...inArea.map((c) => c.track ?? 0)) + 1 : 0
+        const created = layout.createColumn(board.id, 'planned', nowTimestamp(), { areaId, track, stack: 0 })
+        applyLayout({ columns: [created], tasks: [] })
+        return created
+      },
+
+      addArea(title) {
+        const board = get().boards.find((b) => b.id === get().activeBoardId())
+        if (!board) return undefined
+        const change = layout.addArea(board, title.trim(), nowTimestamp())
+        applyLayout(change)
+        return change.area
+      },
+
+      moveArea(areaId, move) {
+        const board = get().boards.find((b) => b.id === get().activeBoardId())
+        if (board) applyLayout({ board: layout.moveArea(board, areaId, move, nowTimestamp()), columns: [], tasks: [] })
+      },
+
+      updateArea(areaId, patch) {
+        const board = get().boards.find((b) => (b.areas ?? []).some((a) => a.id === areaId))
+        if (board) applyLayout({ board: layout.updateArea(board, areaId, patch, nowTimestamp()), columns: [], tasks: [] })
+      },
+
+      removeArea(areaId) {
+        const board = get().boards.find((b) => (b.areas ?? []).some((a) => a.id === areaId))
+        if (!board) return { ok: true }
+        if ((board.areas ?? []).length <= 1) return { ok: false, reason: 'lastArea' }
+        const inArea = new Set(get().columns.filter((c) => c.areaId === areaId).map((c) => c.id))
+        const remaining = get().columns.filter((c) => !inArea.has(c.id) && !(c.parentId && inArea.has(c.parentId)))
+        const refusal = checkLeaves(remaining, board.id)
+        if (refusal) return refusal
+        const target = fallbackColumn(remaining, board.id)!
+        applyLayout(layout.deleteArea(board, get().columns, get().tasks, areaId, target.id, nowTimestamp()))
+        return { ok: true }
       },
 
       updateSettings(patch) {
@@ -446,9 +593,8 @@ export function createAppStore() {
         const repos = get().repos
         if (!repos) return { ok: false }
         try {
-          // Older backups may lack columns introduced later (e.g. the backlog).
-          const missing = missingDefaultColumns(snapshot.boards, snapshot.columns, nowTimestamp())
-          await repos.replaceAll(missing.length ? { ...snapshot, columns: [...snapshot.columns, ...missing] } : snapshot)
+          // Older backups have no layout yet (and may lack the backlog/blocked columns).
+          await repos.replaceAll(withNormalizedBoards(snapshot, nowTimestamp()).snapshot)
         } catch (error) {
           console.error(error)
           return { ok: false }
@@ -542,4 +688,29 @@ export const useAppStore = createAppStore()
 /** Display name of a column: custom title or the localized default for its role. */
 export function columnTitle(column: Column, locale: Settings['locale']): string {
   return column.title || translate(locale, `column.${column.role}`)
+}
+
+/** Applies {@link normalizeBoards} to a snapshot and merges the changed records back in. */
+function withNormalizedBoards(snapshot: DataSnapshot, now: string): { snapshot: DataSnapshot; changed: boolean } {
+  const changed = normalizeBoards(snapshot.boards, snapshot.columns, now)
+  if (!changed.boards.length && !changed.columns.length) return { snapshot, changed: false }
+  const boards = new Map(snapshot.boards.map((b) => [b.id, b]))
+  for (const board of changed.boards) boards.set(board.id, board)
+  const columns = new Map(snapshot.columns.map((c) => [c.id, c]))
+  for (const column of changed.columns) columns.set(column.id, column)
+  return { snapshot: { ...snapshot, boards: [...boards.values()], columns: [...columns.values()] }, changed: true }
+}
+
+/** A board must keep at least one task column, one "Eingang" (quick capture) and one "Erledigt". */
+function checkLeaves(columns: Column[], boardId: string): LayoutResult | undefined {
+  const leaves = columns.filter((c) => c.boardId === boardId && isLeaf(c) && !c.deletedAt)
+  if (leaves.length === 0) return { ok: false, reason: 'lastColumn' }
+  if (!leaves.some((c) => c.role === 'inbox')) return { ok: false, reason: 'lastInbox' }
+  if (!leaves.some((c) => c.role === 'done')) return { ok: false, reason: 'lastDone' }
+  return undefined
+}
+
+/** Where tasks of a removed column go: the board's first "Eingang" column. */
+function fallbackColumn(columns: Column[], boardId: string): Column | undefined {
+  return columnByRole(columns, boardId, 'inbox') ?? columns.find((c) => c.boardId === boardId && isLeaf(c) && !c.deletedAt)
 }

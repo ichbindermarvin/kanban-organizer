@@ -1968,18 +1968,18 @@ p {
   flex-direction: column;
   min-height: 0;
 }
-.flow-arrow-cell__top,
-.flow-arrow-cell__bottom {
+/* Rows mirror the stacked columns next to the cell: expanded = flexible, collapsed = bar height. */
+.flow-arrow-cell__row {
   flex: 1 1 0;
   min-height: 0;
 }
-/* Same spacing as the down-arrow between the two stacked columns. */
-.flow-arrow-cell__bottom {
-  margin-top: 22px;
-}
-.flow-arrow-cell--collapsed .flow-arrow-cell__bottom {
+.flow-arrow-cell__row--bar {
   flex: none;
   height: 44px;
+}
+.flow-arrow-cell__gap {
+  flex: none;
+  height: 22px;
 }
 .flow-arrow--hinted {
   opacity: 0.75;
@@ -1999,4 +1999,113 @@ p {
   font-style: italic;
   color: var(--text-2);
   overflow-wrap: break-word;
+}
+
+/* ───────────── Flexible layout: areas and split columns ───────────── */
+.board-areas {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.area-row {
+  display: flex;
+  gap: 28px;
+  min-height: 0;
+}
+.area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+}
+.area .board {
+  flex: 1;
+  min-height: 0;
+}
+.area--collapsed {
+  flex-grow: 1;
+}
+.area__header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+}
+.area__title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-2);
+}
+.area__menu {
+  opacity: 0;
+  transition: opacity 120ms;
+}
+.area__header:hover .area__menu,
+.area__header:focus-within .area__menu,
+.area__menu[aria-expanded='true'] {
+  opacity: 1;
+}
+.area__empty {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+}
+.column--group {
+  min-width: 0;
+}
+.column-group__children {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.column--sub {
+  flex: 1 1 0;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+.column--sub + .column--sub {
+  border-left: 1.5px dashed var(--border-strong);
+}
+.column--sub .column__header {
+  padding-top: 2px;
+}
+.column--sub .column__title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+@media (hover: none) {
+  .area__menu {
+    opacity: 1;
+  }
+}
+
+/* Narrow columns: keep header on one line, long names are truncated (full name in the tooltip). */
+.column__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.column__title--vertical {
+  overflow: visible;
+}
+.column__count {
+  flex: none;
+  white-space: nowrap;
 }

@@ -41,9 +41,26 @@ export const subtaskSchema = z.object({
 })
 export type Subtask = z.infer<typeof subtaskSchema>
 
+/**
+ * A board area: an independent flow of columns (e.g. the main flow or a small "Daily Business" board).
+ * Areas are laid out in rows; areas with the same `row` sit side by side.
+ */
+export const areaSchema = z.object({
+  id: z.string().min(1),
+  title: z.string(),
+  row: z.number().int().min(0),
+  position: z.number(),
+  collapsed: z.boolean().optional(),
+  /** Relative height of the area's row: 1 = small, 2 = normal, 3 = large. */
+  size: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+})
+export type Area = z.infer<typeof areaSchema>
+
 export const boardSchema = z.object({
   id: z.string().min(1),
   name: z.string(),
+  /** Layout areas. Missing on boards created before flexible layouts (normalized on load). */
+  areas: z.array(areaSchema).optional(),
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
   archivedAt: timestampSchema.optional(),
@@ -59,8 +76,17 @@ export const columnSchema = z.object({
   role: columnRoleSchema,
   position: z.number(),
   wipLimit: z.number().int().min(1).optional(),
-  /** Collapsed to a slim bar on the board (used by the optional "Blockiert" column). */
+  /** Collapsed on the board: a vertical strip when alone in its track, a bar when stacked. */
   collapsed: z.boolean().optional(),
+  /** Layout: area, horizontal track and vertical stack index (0 = top). Unused for sub-columns. */
+  areaId: z.string().optional(),
+  track: z.number().optional(),
+  stack: z.number().optional(),
+  /** "group" = split column; it holds no tasks, its sub-columns (parentId) sit side by side. */
+  kind: z.literal('group').optional(),
+  parentId: z.string().optional(),
+  /** Tombstone of a removed column (kept for a future sync; never loaded into the UI). */
+  deletedAt: timestampSchema.optional(),
   createdAt: timestampSchema,
   updatedAt: timestampSchema,
 })
