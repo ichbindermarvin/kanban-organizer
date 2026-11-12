@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useAppStore } from '@/state/appStore'
 import { Sidebar } from './Sidebar'
+import { MobileNav } from './MobileNav'
 import { useGlobalShortcuts } from './useGlobalShortcuts'
 import { useHashRoute } from './useHashRoute'
 import { TodayView } from '@/features/today/components/TodayView'
@@ -95,6 +96,7 @@ export function App() {
           {status === 'ready' ? <CurrentView /> : <StatusScreen />}
         </main>
       </div>
+      {status === 'ready' && <MobileNav />}
       {status === 'ready' && (
         <>
           <TaskDrawerHost />

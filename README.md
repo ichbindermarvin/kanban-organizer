@@ -151,6 +151,8 @@ Wird eine Instanz erledigt (Spalte „Erledigt“, Kreis-Button, `X` oder Status
 
 ## Weitere Produktentscheidungen
 
+- **Handy-Layout (unter 700 px Breite, optimiert für iPhone 16 / 16 Pro):** Leiste unten mit Heute · Board · ＋ (Schnellerfassung) · Überfällig · Mehr (Boards, Ansichten, Archiv, Einstellungen). Große Tipp-Flächen, Aktionsmenüs immer sichtbar, Eingabefelder mit 16 px (kein Zoom unter iOS), Abstände für Kamera-Aussparung und Home-Leiste. Das Board zeigt eine Spalte pro Bildschirmbreite (seitlich wischen); Karten verschiebt man per langem Drücken oder über „⋯ → Verschieben nach“. Die Detailansicht ist Vollbild und öffnet ohne Tastatur. Der Desktop bleibt unverändert.
+
 - **Flexibles Board:** Das Standardlayout sieht aus wie bisher, ist aber frei erweiterbar.
   - **Spaltennamen** lassen sich direkt bearbeiten: Klick auf den Namen, auch bei Unterspalten („In Arbeit“, „Fertig“) und der Überschrift geteilter Spalten. Enter speichert, Esc bricht ab, leer = Standardname.
   - **Spalten** über „⋯“ an der Spalte: bearbeiten (Name, Typ, WIP-Limit), links/rechts/darunter einfügen, verschieben, teilen, einklappen, löschen, in einen anderen oder einen neuen Bereich verschieben.

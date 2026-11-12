@@ -11,7 +11,8 @@ export interface DragBindings {
   nodeRef?: Ref<HTMLElement>
   handleRef?: Ref<HTMLButtonElement>
   handleProps?: HTMLAttributes<HTMLButtonElement>
-  onPointerDown?: HTMLAttributes<HTMLElement>['onPointerDown']
+  /** Activators of the mouse and touch sensors (drag the whole card). */
+  activators?: Pick<HTMLAttributes<HTMLElement>, 'onMouseDown' | 'onTouchStart'>
   style?: CSSProperties
   isDragging?: boolean
   dragDisabled?: boolean
@@ -39,7 +40,7 @@ export const TaskCard = memo(function TaskCard({ task, done, blocked, drag, over
       style={drag?.style}
       className={`card${task.color ? ` card--colored color-${task.color}` : ''}${done ? ' card--done' : ''}${drag?.isDragging ? ' card--placeholder' : ''}${overlay ? ' card--overlay' : ''}${selected ? ' card--selected' : ''}`}
       data-task-id={task.id}
-      onPointerDown={drag?.onPointerDown}
+      {...drag?.activators}
       onFocus={() => selectTask(task.id)}
     >
       <CompleteButton task={task} done={done} />

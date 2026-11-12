@@ -113,6 +113,8 @@ export function Menu({ label, entries, trigger, triggerClassName = 'icon-btn' }:
           setOpen((v) => !v)
         }}
         onPointerDown={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
           if (e.key === 'ArrowDown') {
             e.preventDefault()

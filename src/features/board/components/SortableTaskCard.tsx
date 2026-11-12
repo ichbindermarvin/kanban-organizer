@@ -1,4 +1,4 @@
-import type { KeyboardEventHandler, PointerEventHandler } from 'react'
+import type { KeyboardEventHandler, MouseEventHandler, TouchEventHandler } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { Task } from '@/features/tasks/models/schemas'
@@ -18,7 +18,10 @@ export function SortableTaskCard({ task, done, blocked, disabled }: { task: Task
         nodeRef: setNodeRef,
         handleRef: setActivatorNodeRef,
         handleProps: { ...attributes, onKeyDown: listeners?.onKeyDown as KeyboardEventHandler<HTMLButtonElement> | undefined },
-        onPointerDown: listeners?.onPointerDown as PointerEventHandler<HTMLElement> | undefined,
+        activators: {
+          onMouseDown: listeners?.onMouseDown as MouseEventHandler<HTMLElement> | undefined,
+          onTouchStart: listeners?.onTouchStart as TouchEventHandler<HTMLElement> | undefined,
+        },
         style: { transform: CSS.Translate.toString(transform), transition },
         isDragging,
         dragDisabled: disabled,

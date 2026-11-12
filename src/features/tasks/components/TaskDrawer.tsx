@@ -41,7 +41,9 @@ function TaskDrawer({ task }: { task: Task }) {
   const flushTitle = useAutosave(title, task.title, (value) => value.trim() && updateTask(task.id, { title: value.trim() }))
   const flushDescription = useAutosave(description, task.description ?? '', (value) => updateTask(task.id, { description: value || undefined }))
 
-  useFocusTrap(ref, closeDrawer, titleRef)
+  // On touch screens, focusing the title would pop up the keyboard right away; start on the close button.
+  const coarsePointer = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
+  useFocusTrap(ref, closeDrawer, coarsePointer ? undefined : titleRef)
 
   const board = useAppStore((s) => s.boards.find((b) => b.id === task.boardId))
   const boardColumns = leafColumnsInOrder(board, columns)

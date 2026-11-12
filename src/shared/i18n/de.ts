@@ -11,6 +11,8 @@ export const de = {
   'nav.settings': 'Einstellungen',
   'nav.search': 'Suche',
   'nav.newTask': 'Neue Aufgabe',
+  'nav.tabbar': 'Schnellzugriff',
+  'nav.more': 'Mehr',
   'nav.shortcuts': 'Tastenkürzel',
   'nav.backupHint': 'Letztes Backup vor {days} Tagen',
   'nav.backupNever': 'Noch kein Backup erstellt',

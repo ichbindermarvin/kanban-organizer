@@ -548,3 +548,9 @@ test('sync settings refuse a secret key', async ({ page }) => {
   await section.getByLabel('Publishable Key (öffentlich)').fill('sb_publishable_' + 'x'.repeat(30))
   await expect(section.getByRole('button', { name: 'Verbinden' })).toBeEnabled()
 })
+
+test('desktop: the phone tab bar is not shown', async ({ page }) => {
+  await openApp(page)
+  await expect(page.locator('.tabbar')).toBeHidden()
+  await expect(page.locator('.sidebar')).toBeVisible()
+})

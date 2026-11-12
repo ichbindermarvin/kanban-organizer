@@ -15,6 +15,8 @@ export function CompleteButton({ task, done }: { task: Task; done: boolean }) {
       aria-pressed={done}
       disabled={!!task.archivedAt}
       onPointerDown={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
       onClick={(e) => {
         e.stopPropagation()
         toggle(task.id)

@@ -13,6 +13,8 @@ export const en: Record<TranslationKey, string> = {
   'nav.settings': 'Settings',
   'nav.search': 'Search',
   'nav.newTask': 'New task',
+  'nav.tabbar': 'Quick access',
+  'nav.more': 'More',
   'nav.shortcuts': 'Shortcuts',
   'nav.backupHint': 'Last backup {days} days ago',
   'nav.backupNever': 'No backup yet',

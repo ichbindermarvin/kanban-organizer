@@ -9,7 +9,7 @@ interface DialogProps {
   children: ReactNode
   initialFocus?: RefObject<HTMLElement | null>
   size?: 'sm' | 'md'
-  position?: 'center' | 'top'
+  position?: 'center' | 'top' | 'bottom'
   role?: 'dialog' | 'alertdialog'
   describedBy?: string
 }
