@@ -4,6 +4,7 @@ import { useT } from '@/shared/hooks/useT'
 import { Icon } from '@/shared/components/Icon'
 import { formatTimestamp } from '@/shared/utils/format'
 import { useSyncStore } from './syncStore'
+import { normalizeSupabaseUrl } from './config'
 
 const MIN_PASSPHRASE = 10
 
@@ -87,7 +88,7 @@ function ConfigForm() {
       className="form-stack sync-form"
       onSubmit={(e) => {
         e.preventDefault()
-        if (valid) void saveConfig({ url: url.trim().replace(/\/+$/, ''), anonKey: anonKey.trim() })
+        if (valid) void saveConfig({ url: normalizeSupabaseUrl(url), anonKey: anonKey.trim() })
       }}
     >
       <h3 className="settings-subtitle">{t('sync.configTitle')}</h3>

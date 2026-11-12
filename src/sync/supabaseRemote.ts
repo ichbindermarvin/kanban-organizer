@@ -1,10 +1,10 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { KEY_RECORD_ID, SyncError, type KeyMaterial, type RemoteRecord, type RemoteStore } from './remote'
 import type { AuthAdapter } from './syncService'
-import type { SupabaseConfig } from './config'
+import { normalizeSupabaseUrl, type SupabaseConfig } from './config'
 
 export function createSupabase(config: SupabaseConfig): SupabaseClient {
-  return createClient(config.url, config.anonKey, {
+  return createClient(normalizeSupabaseUrl(config.url), config.anonKey.trim(), {
     // Code-based login (no redirect links): works the same in Safari and in the installed iPhone app.
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: 'kanban-organizer.auth' },
   })

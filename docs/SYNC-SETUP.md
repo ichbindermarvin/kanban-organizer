@@ -46,7 +46,8 @@ installierten iPhone-App, anders als Links).
 
 In Supabase stehen:
 
-- **Project URL** (z. B. `https://abcdefgh.supabase.co`) – unter **Project Settings → Data API** bzw. auf der Projektübersicht
+- **Project URL** – nur die Basis-Adresse, z. B. `https://abcdefgh.supabase.co`, **ohne** Zusatz wie `/rest/v1/`
+  (die App kürzt einen solchen Zusatz inzwischen selbst). Zu finden unter **Project Settings → Data API** bzw. auf der Projektübersicht.
 - **Publishable Key** (beginnt mit `sb_publishable_`) – unter **Project Settings → API Keys**.
   Ältere Projekte zeigen unter „Legacy API Keys“ noch den **anon**-Key (beginnt mit `eyJ`); der funktioniert auch,
   wird von Supabase aber bis Ende 2026 abgelöst.
