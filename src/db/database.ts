@@ -4,11 +4,39 @@ import { DB_MIGRATIONS } from './migrations'
 
 export const DB_NAME = 'kanban-organizer'
 
+export interface OutboxEntry {
+  key: string
+  /** Increasing counter; an entry is only removed if it was not marked again during an upload. */
+  markedAt: number
+}
+
+export interface MetaEntry {
+  key: string
+  value: unknown
+}
+
+export type RecordKind = 'board' | 'column' | 'task' | 'settings'
+
+export function recordKey(kind: RecordKind, id: string): string {
+  return `${kind}:${id}`
+}
+
+let markCounter = 0
+/** Monotonic marker for outbox entries (Date.now() alone can repeat within one millisecond). */
+export function nextMark(): number {
+  markCounter = Math.max(markCounter + 1, Date.now() * 1000)
+  return markCounter
+}
+
 export class KanbanDatabase extends Dexie {
   boards!: Table<Board, string>
   columns!: Table<Column, string>
   tasks!: Table<Task, string>
   settings!: Table<Settings, string>
+  /** Records changed locally that still have to be uploaded (cloud sync). Key: "task:<id>". */
+  outbox!: Table<OutboxEntry, string>
+  /** Device-local key/value data that is never synced (sync cursor, sync key, server config). */
+  meta!: Table<MetaEntry, string>
 
   constructor(name = DB_NAME) {
     super(name)

@@ -526,3 +526,14 @@ test('sub-column names of a split column can be edited in place', async ({ page 
   await expect(page.locator('section.column--group section.column--sub h2')).toHaveText(['i.A.', 'done'])
   await expect(page.locator('section.column--group > header h2')).toHaveText('In Arbeit')
 })
+
+test('sync settings guide through connecting a server (no server configured)', async ({ page }) => {
+  await openApp(page, '#/settings')
+  const section = page.locator('section', { has: page.getByRole('heading', { name: 'Synchronisierung' }) })
+  await expect(section).toContainText('Ende-zu-Ende')
+  const connect = section.getByRole('button', { name: 'Verbinden' })
+  await expect(connect).toBeDisabled()
+  await section.getByLabel('Projekt-URL').fill('https://beispiel.supabase.co')
+  await section.getByLabel('Anon-Key (öffentlich)').fill('x'.repeat(40))
+  await expect(connect).toBeEnabled()
+})

@@ -594,7 +594,9 @@ export function createAppStore() {
         if (!repos) return { ok: false }
         try {
           // Older backups have no layout yet (and may lack the backlog/blocked columns).
-          await repos.replaceAll(withNormalizedBoards(snapshot, nowTimestamp()).snapshot)
+          const now = nowTimestamp()
+          const normalized = withNormalizedBoards(snapshot, now).snapshot
+          await repos.replaceAll(asReplacement(normalized, { boards: get().boards, columns: (await repos.loadAll()).columns, tasks: get().tasks }, now))
         } catch (error) {
           console.error(error)
           return { ok: false }
@@ -713,4 +715,32 @@ function checkLeaves(columns: Column[], boardId: string): LayoutResult | undefin
 /** Where tasks of a removed column go: the board's first "Eingang" column. */
 function fallbackColumn(columns: Column[], boardId: string): Column | undefined {
   return columnByRole(columns, boardId, 'inbox') ?? columns.find((c) => c.boardId === boardId && isLeaf(c) && !c.deletedAt)
+}
+
+/**
+ * Makes an imported backup win everywhere: imported records get a fresh updatedAt (a backup is
+ * usually older than the cloud copy), and records that exist now but not in the backup become
+ * tombstones, so the import also replaces the data on synced devices.
+ */
+function asReplacement(snapshot: DataSnapshot, current: Pick<DataSnapshot, 'boards' | 'columns' | 'tasks'>, now: string): DataSnapshot {
+  const touch = <T extends { updatedAt: string }>(record: T): T => ({ ...record, updatedAt: now })
+  const ids = (list: { id: string }[]) => new Set(list.map((r) => r.id))
+  const boardIds = ids(snapshot.boards)
+  const columnIds = ids(snapshot.columns)
+  const taskIds = ids(snapshot.tasks)
+  return {
+    boards: [
+      ...snapshot.boards.map(touch),
+      ...current.boards.filter((b) => !boardIds.has(b.id)).map((b) => ({ ...b, archivedAt: b.archivedAt ?? now, updatedAt: now })),
+    ],
+    columns: [
+      ...snapshot.columns.map(touch),
+      ...current.columns.filter((c) => !columnIds.has(c.id)).map((c) => ({ ...c, deletedAt: c.deletedAt ?? now, updatedAt: now })),
+    ],
+    tasks: [
+      ...snapshot.tasks.map(touch),
+      ...current.tasks.filter((t) => !taskIds.has(t.id)).map((t) => ({ ...t, deletedAt: t.deletedAt ?? now, updatedAt: now })),
+    ],
+    ...(snapshot.settings ? { settings: touch(snapshot.settings) } : {}),
+  }
 }

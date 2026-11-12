@@ -6,6 +6,7 @@ import { useT } from '@/shared/hooks/useT'
 import { Icon, type IconName } from '@/shared/components/Icon'
 import type { TranslationKey } from '@/shared/i18n'
 import { SidebarBoards } from './SidebarBoards'
+import { useSyncStatusText } from '@/sync/SyncSettings'
 
 interface NavItem {
   view: View
@@ -37,6 +38,7 @@ export function Sidebar() {
     }
   }, [tasks, columns, today, boards])
 
+  const syncStatus = useSyncStatusText()
   const backupAge = lastBackupAt ? differenceInCalendarDays(new Date(), new Date(lastBackupAt)) : undefined
   const showBackupHint = counts.total >= 5 && (backupAge === undefined || backupAge >= 7)
 
@@ -92,6 +94,19 @@ export function Sidebar() {
       <ul className="nav">{renderItem({ view: 'archive', label: 'nav.archive', icon: 'archive' })}</ul>
 
       <div className="sidebar__footer">
+        {syncStatus && (
+          <a
+            href="#/settings"
+            className={`sidebar__sync sidebar__sync--${syncStatus.tone}`}
+            onClick={(e) => {
+              e.preventDefault()
+              setView('settings')
+            }}
+          >
+            <Icon name="cloud" size={14} />
+            <span>{syncStatus.text}</span>
+          </a>
+        )}
         {showBackupHint && (
           <a
             href="#/settings"

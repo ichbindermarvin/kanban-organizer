@@ -61,6 +61,21 @@ export const DB_MIGRATIONS: DbMigration[] = [
       if (changed.columns.length) await tx.table('columns').bulkPut(changed.columns)
     },
   },
+  {
+    // v5: cloud sync – outbox of unsynced changes and device-local metadata.
+    // Every existing record is marked as changed so it is uploaded once sync is set up.
+    version: 5,
+    stores: { outbox: 'key', meta: 'key' },
+    upgrade: async (tx) => {
+      const mark = Date.now() * 1000
+      const keys: { key: string; markedAt: number }[] = []
+      for (const [table, kind] of [['boards', 'board'], ['columns', 'column'], ['tasks', 'task'], ['settings', 'settings']] as const) {
+        const ids = (await tx.table(table).toCollection().primaryKeys()) as string[]
+        ids.forEach((id) => keys.push({ key: `${kind}:${id}`, markedAt: mark }))
+      }
+      if (keys.length) await tx.table('outbox').bulkPut(keys)
+    },
+  },
 ]
 
 export const CURRENT_DB_VERSION = DB_MIGRATIONS[DB_MIGRATIONS.length - 1]!.version

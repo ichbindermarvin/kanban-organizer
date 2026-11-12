@@ -9,6 +9,7 @@ import { Icon } from '@/shared/components/Icon'
 import { useT } from '@/shared/hooks/useT'
 import { formatTimestamp } from '@/shared/utils/format'
 import { exportBackup } from './backupActions'
+import { SyncSettings } from '@/sync/SyncSettings'
 
 type StorageStatus = 'persisted' | 'not-persisted' | 'unknown'
 
@@ -151,6 +152,8 @@ export function SettingsView() {
             ))}
         </div>
       </section>
+
+      <SyncSettings />
 
       <section className="settings-section" aria-labelledby="settings-data">
         <h2 id="settings-data">{t('settings.data')}</h2>

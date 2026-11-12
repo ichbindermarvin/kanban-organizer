@@ -214,7 +214,9 @@ describe('app store with IndexedDB', () => {
     const parsed = parseBackup(backup)
     if (!parsed.ok) throw new Error(parsed.code)
     expect(await s().importSnapshot(parsed.snapshot)).toEqual({ ok: true })
-    expect(s().tasks.map((t) => t.title)).toEqual(['Original'])
+    expect(s().tasks.filter((t) => !t.deletedAt).map((t) => t.title)).toEqual(['Original'])
+    // Tasks that are not in the backup become tombstones, so the import also wins on synced devices.
+    expect(s().tasks.find((t) => t.title === 'Nach dem Export')!.deletedAt).toBeDefined()
   })
 
   it('a failing import leaves the existing database unchanged', async () => {

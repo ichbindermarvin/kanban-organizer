@@ -6,6 +6,7 @@ import { useAppStore } from '@/state/appStore'
 import { createDexieRepositories, openDatabase } from '@/db/repositories/dexieRepositories'
 import { classifyDbError } from '@/db/database'
 import { translate } from '@/shared/i18n'
+import { initSync } from '@/sync/syncStore'
 import '@/styles/index.css'
 
 createRoot(document.getElementById('root')!).render(
@@ -25,8 +26,11 @@ async function start() {
       useAppStore.getState().showToast({ message: translate(useAppStore.getState().settings.locale, 'error.otherTab'), tone: 'error' })
       return false
     })
-    await useAppStore.getState().init(createDexieRepositories(db), { seed: import.meta.env.DEV })
+    const repos = createDexieRepositories(db)
+    await useAppStore.getState().init(repos, { seed: import.meta.env.DEV })
     requestPersistentStorage()
+    // Cloud sync is optional; failures (offline, no server configured) never block the app.
+    void initSync(db, repos, useAppStore).catch((error) => console.error(error))
   } catch (error) {
     console.error(error)
     useAppStore.setState({ status: 'error', errorKind: classifyDbError(error).kind })

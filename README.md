@@ -8,7 +8,8 @@ Kein Jira-, Asana- oder Trello-Klon: wenige Funktionen, dafür schnelle Kernabl�
 - **Farbige Karten**: 8 Farben zur freien Markierung, direkt über das Kartenmenü oder im Drawer
 - **Kanban-Board**: Backlog ⇢ Inbox → Geplant (darunter optional Blockiert) → In Arbeit → Erledigt, mit sichtbaren Flow-Pfeilen, Drag-and-drop und Tastaturbedienung
 - **Wiederkehrende Aufgaben**: täglich, wöchentlich, monatlich oder benutzerdefiniert
-- **Lokal und privat**: alle Daten bleiben im Browser (IndexedDB), kein Konto, keine Cloud, kein Tracking
+- **Lokal und privat**: alle Daten liegen im Browser (IndexedDB), kein Tracking
+- **Optionaler Cloud-Sync**: Ende-zu-Ende-verschlüsselt über Supabase, gleiche Aufgaben auf allen Geräten (Einrichtung: [docs/SYNC-SETUP.md](docs/SYNC-SETUP.md))
 - **Backup**: versionierter JSON-Export und geprüfter Import
 - Deutsch und Englisch, helles und dunkles Design, als PWA installierbar
 
@@ -120,7 +121,7 @@ e2e/              Playwright-Tests
 ## Daten
 
 - **Lokale Speicherung:** IndexedDB im Browser, Tabellen `boards`, `columns`, `tasks` und `settings`. Jede Änderung wird sofort automatisch gespeichert, einen Speichern-Button gibt es nicht.
-- **Kein Account, kein Cloud-Sync, keine Telemetrie:** Aufgabeninhalte verlassen den Browser nie.
+- **Ohne Sync** gibt es kein Konto und keine Cloud: Aufgabeninhalte verlassen den Browser nie. **Mit Sync** verlassen sie das Gerät nur Ende-zu-Ende-verschlüsselt (siehe unten). Keine Telemetrie.
 - **Daten gehören zur Adresse und zum Browser:** Wer die App unter einer anderen URL oder in einem anderen Browser öffnet, sieht ein leeres Board. Zum Umziehen dient Export/Import.
 - **Speicherschutz:** Beim Start bittet die App den Browser um dauerhaften Speicher (`navigator.storage.persist()`). Edge und Chrome entscheiden das ohne Rückfrage. In Firefox geschieht es nur auf Knopfdruck in den Einstellungen, weil Firefox dafür einen Dialog zeigt. Als installierte PWA ist der Schutz am zuverlässigsten.
 - **Backup:** Einstellungen → „Daten exportieren“ speichert eine versionierte JSON-Datei (`schemaVersion`). Sobald einige Aufgaben existieren, erinnert die Sidebar, wenn das letzte Backup älter als 7 Tage ist (oder noch keines existiert).
@@ -179,17 +180,24 @@ Wird eine Instanz erledigt (Spalte „Erledigt“, Kreis-Button, `X` oder Status
 - **Filter:** Innerhalb einer Kategorie gilt ODER, zwischen Kategorien UND. „Diese Woche“ bedeutet: fällig ab heute bis Sonntag.
 - **Suche** zeigt eine globale Ergebnisliste über Board und Archiv, die sich beim Tippen aktualisiert. Sie durchsucht Titel, Beschreibung, Tags sowie Farbname und Farb-Bedeutung („arbeit“ findet alle Karten in der Farbe mit der Bedeutung „Arbeit“).
 
-## Future Architecture (Sync-Vorbereitung)
+## Cloud-Sync
 
-Cloud-Sync ist bewusst nicht implementiert. Vorbereitet ist Folgendes:
+Optional, Einrichtung in [docs/SYNC-SETUP.md](docs/SYNC-SETUP.md). Aufbau:
 
-- **Globale UUIDs** (`crypto.randomUUID()`) statt Auto-Increment-IDs.
-- **`createdAt` und `updatedAt`** (ISO-8601) auf allen Boards, Spalten und Aufgaben. Jede Änderung aktualisiert `updatedAt`, das ist die Basis für Konflikterkennung („last write wins“ pro Objekt).
-- **Löschmarkierungen** (`deletedAt`), damit Löschungen synchronisierbar sind.
-- **Geordnete Schreibvorgänge:** Alle Änderungen werden in einer Warteschlange gespeichert, eine ältere Änderung kann nie eine neuere überschreiben.
-- **Repository-Interfaces** (`src/db/repositories/types.ts`): Ein `RemoteTaskRepository` oder ein synchronisierender Wrapper kann ergänzt werden, ohne die UI zu ändern.
-- **Mehrere Boards:** `boardId` steht an Spalten und Aufgaben, Spalten haben eine feste `role`. Gelöschte Boards bleiben als Markierung (`archivedAt`) erhalten, ihre Aufgaben als Löschmarkierung.
-- **Serialisierbare Datenobjekte** und versionierte Schemas für Datenbank und Backup.
+```
+App-Store (Zustand) → Repositories → IndexedDB ──(Outbox)──► SyncEngine ⇄ Supabase (records)
+                                         ▲                       │
+                                         └──── entschlüsselt ◄───┘
+```
+
+- **Local-first:** Die App arbeitet immer mit IndexedDB. Jede Änderung landet im selben Speichervorgang in einer **Outbox**; die Sync-Engine lädt sie hoch, sobald eine Verbindung besteht (`src/sync/syncEngine.ts`).
+- **Ende-zu-Ende-Verschlüsselung** (`src/sync/crypto.ts`): Schlüssel aus dem Sync-Passwort per PBKDF2-SHA-256 (600 000 Runden, zufälliges Salt). Jeder Datensatz wird mit AES-256-GCM und frischem IV verschlüsselt, die Datensatz-ID ist als „additional data“ gebunden. Der Schlüssel liegt nicht exportierbar in IndexedDB des Geräts; das Passwort wird nirgends gespeichert. Ein verschlüsselter Prüfwert erkennt falsche Passwörter.
+- **Server** (`supabase/schema.sql`): eine Tabelle `records` (`id`, `updated_at`, `payload`) mit Row Level Security. `push_records` übernimmt nur Versionen mit neuerem `updated_at` – **neueste Änderung gewinnt** pro Aufgabe, Spalte, Board und Einstellungen.
+- **Abruf** über einen serverseitigen Zeitstempel als Cursor (mit Überlappung; Anwenden ist idempotent). Löschungen reisen als Markierungen (`deletedAt`, `archivedAt`).
+- **Erstverbindung:** Ein Gerät ohne eigene Aufgaben übernimmt den Cloud-Stand (kein doppeltes Standard-Board); ein Gerät mit Aufgaben führt zusammen.
+- **Import eines Backups** gewinnt auch auf anderen Geräten: Importierte Datensätze bekommen einen frischen Zeitstempel, was im Backup fehlt, wird als gelöscht markiert.
+- **Anmeldung** per 6-stelligem E-Mail-Code (kein Link), damit es auch in der installierten iPhone-App funktioniert. Der Supabase-Client wird nur geladen, wenn Sync eingerichtet ist.
+- Auslöser: kurz nach jeder Änderung, beim Öffnen/Zurückkehren in die App, bei wiederhergestellter Verbindung und jede Minute.
 
 ## Hosting
 

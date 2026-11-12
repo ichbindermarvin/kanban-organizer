@@ -2141,3 +2141,60 @@ p {
   font-size: 13px;
   font-weight: 600;
 }
+
+/* Sync */
+.sync-form {
+  max-width: 460px;
+  margin-top: 12px;
+}
+.input--code {
+  width: 160px;
+  font-size: 20px;
+  letter-spacing: 0.3em;
+  font-variant-numeric: tabular-nums;
+}
+.checkbox--top {
+  align-items: flex-start;
+}
+.checkbox--top input {
+  margin-top: 3px;
+  flex: none;
+}
+.sync-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-weight: 500;
+}
+.sync-status--ok {
+  color: var(--success);
+}
+.sync-status--warn {
+  color: var(--warn);
+}
+.sync-status--muted {
+  color: var(--text-2);
+}
+.sidebar__sync {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 6px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--text-3);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+.sidebar__sync:hover {
+  background: var(--surface-hover);
+}
+.sidebar__sync--warn {
+  color: var(--warn);
+}
+.sidebar__sync span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
