@@ -55,9 +55,14 @@ export function SyncSettings() {
       )}
 
       {sync.message && (
-        <p className="error-text" role="alert">
-          {t(`sync.message.${sync.message}`)}
-        </p>
+        <div className="error-text" role="alert">
+          <p>{t(`sync.message.${sync.message}`)}</p>
+          {sync.detail && (
+            <p className="small sync-detail">
+              {t('sync.detail')}: <code>{sync.detail}</code>
+            </p>
+          )}
+        </div>
       )}
       {sync.phase !== 'unconfigured' && sync.phase !== 'ready' && !sync.configFromEnv && (
         <button type="button" className="btn btn--ghost btn--small" onClick={() => void sync.resetConfig()}>

@@ -3,12 +3,13 @@ import type { KanbanDatabase } from '@/db/database'
 import type { Repositories } from '@/db/repositories/types'
 import type { useAppStore } from '@/state/appStore'
 import { SyncError } from './remote'
+import { describeAuthError, type AuthProblem } from './authErrors'
 import { SyncService, type AuthAdapter } from './syncService'
 import { envConfig, type SupabaseConfig } from './config'
 
 export type SyncPhase = 'unconfigured' | 'signedOut' | 'codeSent' | 'needsPassphrase' | 'ready'
 export type SyncStatus = 'idle' | 'syncing' | 'offline' | 'error'
-export type SyncMessage = 'wrongPassphrase' | 'keyExists' | 'decrypt' | 'server' | 'auth' | 'code' | 'config'
+export type SyncMessage = 'wrongPassphrase' | 'keyExists' | 'decrypt' | 'server' | 'auth' | 'code' | 'config' | `auth.${AuthProblem}`
 
 interface SyncState {
   phase: SyncPhase
@@ -17,6 +18,8 @@ interface SyncState {
   remoteHasKey?: boolean
   lastSyncAt?: string
   message?: SyncMessage
+  /** Technical detail of the last error (original message from the server), shown for diagnosis. */
+  detail?: string
   busy: boolean
   config?: SupabaseConfig
   configFromEnv: boolean
@@ -56,7 +59,7 @@ export const useSyncStore = create<SyncState>()((set, get) => {
     const kind = error instanceof SyncError ? error.kind : 'server'
     console.error(error)
     if (kind === 'offline') set({ status: 'offline' })
-    else set({ status: 'error', message: kind === 'decrypt' ? 'decrypt' : kind === 'auth' ? 'auth' : 'server' })
+    else set({ status: 'error', message: kind === 'decrypt' ? 'decrypt' : kind === 'auth' ? 'auth' : 'server', detail: describeAuthError(error).detail })
   }
 
   const connect = async (config: SupabaseConfig) => {
@@ -117,24 +120,27 @@ export const useSyncStore = create<SyncState>()((set, get) => {
     },
 
     async sendCode(email) {
-      set({ busy: true, message: undefined })
+      set({ busy: true, message: undefined, detail: undefined })
       try {
         await ctx().auth!.sendCode(email.trim())
         set({ phase: 'codeSent', email: email.trim() })
       } catch (error) {
-        set({ message: error instanceof SyncError && error.kind === 'offline' ? 'server' : 'config' })
+        console.error(error)
+        const { problem, detail } = describeAuthError(error)
+        set({ message: `auth.${problem}`, detail })
       } finally {
         set({ busy: false })
       }
     },
 
     async verifyCode(code) {
-      set({ busy: true, message: undefined })
+      set({ busy: true, message: undefined, detail: undefined })
       try {
         await ctx().auth!.verifyCode(get().email!, code.trim())
         set({ phase: 'needsPassphrase', remoteHasKey: await ctx().service!.hasRemoteKey() })
-      } catch {
-        set({ message: 'code' })
+      } catch (error) {
+        console.error(error)
+        set({ message: 'code', detail: describeAuthError(error).detail })
       } finally {
         set({ busy: false })
       }

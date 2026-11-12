@@ -2198,3 +2198,13 @@ p {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.sync-detail {
+  margin-top: 4px;
+  color: var(--text-2);
+}
+.sync-detail code {
+  font-family: var(--mono);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
