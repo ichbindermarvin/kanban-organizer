@@ -4,6 +4,7 @@ import type { Repositories } from '@/db/repositories/types'
 import type { useAppStore } from '@/state/appStore'
 import { SyncError } from './remote'
 import { describeAuthError, type AuthProblem } from './authErrors'
+import { looksLikeLink } from './authLink'
 import { SyncService, type AuthAdapter } from './syncService'
 import { envConfig, type SupabaseConfig } from './config'
 
@@ -24,7 +25,7 @@ interface SyncState {
   config?: SupabaseConfig
   configFromEnv: boolean
 
-  start(config: SupabaseConfig): Promise<void>
+  start(config: SupabaseConfig, loginLink?: string): Promise<void>
   saveConfig(config: SupabaseConfig): Promise<void>
   resetConfig(): Promise<void>
   sendCode(email: string): Promise<void>
@@ -62,7 +63,7 @@ export const useSyncStore = create<SyncState>()((set, get) => {
     else set({ status: 'error', message: kind === 'decrypt' ? 'decrypt' : kind === 'auth' ? 'auth' : 'server', detail: describeAuthError(error).detail })
   }
 
-  const connect = async (config: SupabaseConfig) => {
+  const connect = async (config: SupabaseConfig, loginLink?: string) => {
     // Loaded on demand: devices without sync never download the Supabase client.
     const { SupabaseAuth, SupabaseRemote, createSupabase } = await import('./supabaseRemote')
     const client = createSupabase(config)
@@ -70,6 +71,13 @@ export const useSyncStore = create<SyncState>()((set, get) => {
     c.auth = new SupabaseAuth(client)
     c.service = new SyncService(c.db, new SupabaseRemote(client))
     set({ config })
+    if (loginLink) {
+      try {
+        await c.auth.verifyLink(loginLink)
+      } catch (error) {
+        set({ message: 'code', detail: describeAuthError(error).detail })
+      }
+    }
     const email = await c.auth.currentEmail()
     if (!email) return set({ phase: 'signedOut', email: undefined })
     set({ email })
@@ -99,8 +107,8 @@ export const useSyncStore = create<SyncState>()((set, get) => {
     busy: false,
     configFromEnv: false,
 
-    async start(config) {
-      await connect(config)
+    async start(config, loginLink) {
+      await connect(config, loginLink)
     },
 
     async saveConfig(config) {
@@ -136,7 +144,9 @@ export const useSyncStore = create<SyncState>()((set, get) => {
     async verifyCode(code) {
       set({ busy: true, message: undefined, detail: undefined })
       try {
-        await ctx().auth!.verifyCode(get().email!, code.trim())
+        // A pasted login link (from an e-mail template without code) works as well.
+        if (looksLikeLink(code)) await ctx().auth!.verifyLink(code.trim())
+        else await ctx().auth!.verifyCode(get().email!, code.trim())
         set({ phase: 'needsPassphrase', remoteHasKey: await ctx().service!.hasRemoteKey() })
       } catch (error) {
         console.error(error)
@@ -222,7 +232,12 @@ export async function initSync(db: KanbanDatabase, repos: Repositories, appStore
   const config = stored ?? env
   if (config) {
     try {
-      await useSyncStore.getState().start(config)
+      // Opened via the login link from the e-mail (Site URL = app URL): sign in with the tokens in the URL.
+      if (/access_token=|[?&]token(_hash)?=/.test(window.location.href)) {
+        const link = window.location.href
+        window.history.replaceState(null, '', `${window.location.pathname}#/settings`)
+        await useSyncStore.getState().start(config, link)
+      } else await useSyncStore.getState().start(config)
     } catch (error) {
       console.error(error)
       useSyncStore.setState({ status: 'offline' })

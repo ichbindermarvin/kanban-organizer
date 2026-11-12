@@ -336,6 +336,7 @@ export const de = {
   'sync.sendCode': 'Code senden',
   'sync.codeSent': 'Wir haben einen 6-stelligen Code an {email} geschickt.',
   'sync.code': 'Code aus der E-Mail',
+  'sync.codeOrLink': 'Statt eines Codes kam ein Link? Halte den Link in der E-Mail gedrückt, wähle „Link kopieren“ und füge ihn hier ein.',
   'sync.verify': 'Anmelden',
   'sync.otherEmail': 'Andere E-Mail-Adresse',
   'sync.createTitle': 'Sync-Passwort festlegen',

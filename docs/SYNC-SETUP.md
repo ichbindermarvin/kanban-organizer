@@ -39,6 +39,18 @@ installierten iPhone-App, anders als Links).
    <p>Gib diesen Code in der Kanban-App ein: <strong>{{ .Token }}</strong></p>
    ```
 
+   **Ohne eigenen Mailserver (Custom SMTP) lassen sich die Vorlagen nicht ändern.** Dann enthält die E-Mail einen
+   Link statt eines Codes. Das funktioniert trotzdem:
+   - **Desktop / Safari:** Link anklicken – die App öffnet sich und meldet Dich an (Site URL siehe Punkt 3).
+   - **Installierte iPhone-App:** Den Link in der Mail **gedrückt halten → „Link kopieren“** und in der App ins
+     Code-Feld einfügen (nicht antippen – sonst landet die Anmeldung in Safari statt in der App).
+
+   **Wichtig: beide Vorlagen.** „Confirm signup“ wird bei der allerersten Anmeldung benutzt, „Magic Link“ bei jeder
+   weiteren (z. B. auf dem iPhone). Fehlt `{{ .Token }}` in einer davon, kommt dort ein Link statt eines Codes.
+   Notfalls kannst Du den Link in der E-Mail gedrückt halten, „Link kopieren“ wählen und ihn in der App ins Code-Feld einfügen.
+3. **Authentication → URL Configuration → Site URL** auf die Adresse der App setzen,
+   z. B. `https://ichbindermarvin.github.io/kanban-organizer/` (sonst zeigen Links auf `localhost:3000`).
+
    Hinweis: Der kostenlose E-Mail-Versand von Supabase ist auf wenige E-Mails pro Stunde begrenzt –
    für eine Person reicht das.
 

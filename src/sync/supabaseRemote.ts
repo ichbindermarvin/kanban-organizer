@@ -2,6 +2,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { KEY_RECORD_ID, SyncError, type KeyMaterial, type RemoteRecord, type RemoteStore } from './remote'
 import type { AuthAdapter } from './syncService'
 import { normalizeSupabaseUrl, type SupabaseConfig } from './config'
+import { parseAuthLink } from './authLink'
 
 export function createSupabase(config: SupabaseConfig): SupabaseClient {
   return createClient(normalizeSupabaseUrl(config.url), config.anonKey.trim(), {
@@ -63,6 +64,16 @@ export class SupabaseAuth implements AuthAdapter {
 
   async verifyCode(email: string, code: string): Promise<void> {
     const { error } = await this.client.auth.verifyOtp({ email, token: code, type: 'email' })
+    if (error) throw new SyncError('auth', error.message, { cause: error })
+  }
+
+  async verifyLink(link: string): Promise<void> {
+    const parsed = parseAuthLink(link)
+    if (!parsed) throw new SyncError('auth', 'Unrecognized login link')
+    const { error } =
+      parsed.kind === 'session'
+        ? await this.client.auth.setSession({ access_token: parsed.accessToken, refresh_token: parsed.refreshToken })
+        : await this.client.auth.verifyOtp({ token_hash: parsed.tokenHash, type: parsed.type })
     if (error) throw new SyncError('auth', error.message, { cause: error })
   }
 

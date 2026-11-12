@@ -338,6 +338,7 @@ export const en: Record<TranslationKey, string> = {
   'sync.sendCode': 'Send code',
   'sync.codeSent': 'We sent a 6-digit code to {email}.',
   'sync.code': 'Code from the e-mail',
+  'sync.codeOrLink': 'Got a link instead of a code? Long-press the link in the e-mail, choose “Copy link” and paste it here.',
   'sync.verify': 'Sign in',
   'sync.otherEmail': 'Use another e-mail address',
   'sync.createTitle': 'Set a sync passphrase',

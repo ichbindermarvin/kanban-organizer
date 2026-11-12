@@ -8,6 +8,8 @@ export interface AuthAdapter {
   currentEmail(): Promise<string | undefined>
   sendCode(email: string): Promise<void>
   verifyCode(email: string, code: string): Promise<void>
+  /** Fallback: sign in with a link copied from the login e-mail (or the page it opened). */
+  verifyLink(link: string): Promise<void>
   signOut(): Promise<void>
 }
 

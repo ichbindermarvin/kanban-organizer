@@ -5,6 +5,7 @@ import { Icon } from '@/shared/components/Icon'
 import { formatTimestamp } from '@/shared/utils/format'
 import { useSyncStore } from './syncStore'
 import { normalizeSupabaseUrl } from './config'
+import { looksLikeLink } from './authLink'
 
 const MIN_PASSPHRASE = 10
 
@@ -176,13 +177,13 @@ function CodeForm() {
         </label>
         <input
           id={id}
-          className="input input--code"
+          className={`input ${looksLikeLink(code) ? 'input--full' : 'input--code'}`}
           value={code}
-          inputMode="numeric"
+          inputMode={looksLikeLink(code) ? 'url' : 'numeric'}
           autoComplete="one-time-code"
-          maxLength={10}
           onChange={(e) => setCode(e.target.value.replace(/\s/g, ''))}
         />
+        <p className="muted small dialog__hint">{t('sync.codeOrLink')}</p>
       </div>
       <div className="settings-row settings-row--buttons">
         <button type="submit" className="btn btn--primary" disabled={busy || code.trim().length < 6}>
